@@ -286,6 +286,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
 
     logging.info("make_dataset")
     offline_dataset = make_dataset(cfg)
+    logging.info(cfg.dataset_repo_id)
     if isinstance(offline_dataset, MultiLeRobotDataset):
         logging.info(
             "Multiple datasets were provided. Applied the following index mapping to the provided datasets: "
@@ -427,7 +428,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     logging.info("End of training")
 
 
-@hydra.main(version_base="1.2", config_name="default", config_path="../configs")
+@hydra.main(version_base="1.2", config_name="aloha_act_real", config_path="../configs")
 def train_cli(cfg: dict):
     train(
         cfg,

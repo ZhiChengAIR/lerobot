@@ -1,0 +1,1670 @@
+.
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── directory_structure.txt
+├── docker
+│   ├── lerobot-cpu
+│   │   └── Dockerfile
+│   ├── lerobot-gpu
+│   │   └── Dockerfile
+│   └── lerobot-gpu-dev
+│       └── Dockerfile
+├── examples
+│   ├── 1_load_lerobot_dataset.py
+│   ├── 2_evaluate_pretrained_policy.py
+│   ├── 3_train_policy.py
+│   ├── 4_train_policy_with_script.md
+│   ├── 5_resume_training.md
+│   ├── 6_add_image_transforms.py
+│   └── advanced
+│       ├── 1_train_act_pusht
+│       │   ├── act_pusht.yaml
+│       │   └── train_act_pusht.md
+│       └── 2_calculate_validation_loss.py
+├── lerobot
+│   ├── common
+│   │   ├── datasets
+│   │   │   ├── compute_stats.py
+│   │   │   ├── factory.py
+│   │   │   ├── lerobot_dataset.py
+│   │   │   ├── push_dataset_to_hub
+│   │   │   │   ├── aloha_hdf5_format.py
+│   │   │   │   ├── _aloha_raw_urls
+│   │   │   │   │   ├── mobile_cabinet.txt
+│   │   │   │   │   ├── mobile_chair.txt
+│   │   │   │   │   ├── mobile_elevator.txt
+│   │   │   │   │   ├── mobile_shrimp.txt
+│   │   │   │   │   ├── mobile_wash_pan.txt
+│   │   │   │   │   ├── mobile_wipe_wine.txt
+│   │   │   │   │   ├── sim_insertion_human.txt
+│   │   │   │   │   ├── sim_insertion_scripted.txt
+│   │   │   │   │   ├── sim_transfer_cube_human.txt
+│   │   │   │   │   ├── sim_transfer_cube_scripted.txt
+│   │   │   │   │   ├── static_battery.txt
+│   │   │   │   │   ├── static_candy.txt
+│   │   │   │   │   ├── static_coffee_new.txt
+│   │   │   │   │   ├── static_coffee.txt
+│   │   │   │   │   ├── static_cups_open.txt
+│   │   │   │   │   ├── static_fork_pick_up.txt
+│   │   │   │   │   ├── static_pingpong_test.txt
+│   │   │   │   │   ├── static_pro_pencil.txt
+│   │   │   │   │   ├── static_screw_driver.txt
+│   │   │   │   │   ├── static_tape.txt
+│   │   │   │   │   ├── static_thread_velcro.txt
+│   │   │   │   │   ├── static_towel.txt
+│   │   │   │   │   ├── static_vinh_cup_left.txt
+│   │   │   │   │   ├── static_vinh_cup.txt
+│   │   │   │   │   └── static_ziploc_slide.txt
+│   │   │   │   ├── cam_png_format.py
+│   │   │   │   ├── _diffusion_policy_replay_buffer.py
+│   │   │   │   ├── dora_parquet_format.py
+│   │   │   │   ├── _download_raw.py
+│   │   │   │   ├── pusht_zarr_format.py
+│   │   │   │   ├── _umi_imagecodecs_numcodecs.py
+│   │   │   │   ├── umi_zarr_format.py
+│   │   │   │   ├── utils.py
+│   │   │   │   └── xarm_pkl_format.py
+│   │   │   ├── sampler.py
+│   │   │   ├── transforms.py
+│   │   │   ├── utils.py
+│   │   │   ├── _video_benchmark
+│   │   │   │   ├── capture_camera_feed.py
+│   │   │   │   ├── README.md
+│   │   │   │   └── run_video_benchmark.py
+│   │   │   └── video_utils.py
+│   │   ├── envs
+│   │   │   ├── factory.py
+│   │   │   └── utils.py
+│   │   ├── logger.py
+│   │   ├── policies
+│   │   │   ├── act
+│   │   │   │   ├── configuration_act.py
+│   │   │   │   └── modeling_act.py
+│   │   │   ├── diffusion
+│   │   │   │   ├── configuration_diffusion.py
+│   │   │   │   └── modeling_diffusion.py
+│   │   │   ├── factory.py
+│   │   │   ├── normalize.py
+│   │   │   ├── policy_protocol.py
+│   │   │   ├── tdmpc
+│   │   │   │   ├── configuration_tdmpc.py
+│   │   │   │   └── modeling_tdmpc.py
+│   │   │   └── utils.py
+│   │   └── utils
+│   │       ├── import_utils.py
+│   │       ├── io_utils.py
+│   │       └── utils.py
+│   ├── configs
+│   │   ├── aloha_act.yaml
+│   │   ├── default.yaml
+│   │   ├── env
+│   │   │   ├── aloha.yaml
+│   │   │   ├── dora_aloha_real.yaml
+│   │   │   ├── pusht.yaml
+│   │   │   └── xarm.yaml
+│   │   └── policy
+│   │       ├── act_real_no_state.yaml
+│   │       ├── act_real.yaml
+│   │       ├── act.yaml
+│   │       ├── diffusion.yaml
+│   │       └── tdmpc.yaml
+│   ├── __init__.py
+│   ├── scripts
+│   │   ├── display_sys_info.py
+│   │   ├── eval.py
+│   │   ├── push_dataset_to_hub.py
+│   │   ├── train.py
+│   │   ├── visualize_dataset.py
+│   │   └── visualize_image_transforms.py
+│   └── __version__.py
+├── LICENSE
+├── Makefile
+├── media
+│   ├── lerobot-logo-light.png
+│   ├── lerobot-logo-thumbnail.png
+│   └── wandb.png
+├── outputs
+│   ├── eval
+│   │   └── 2024-06-24
+│   │       ├── 13-42-33_aloha_act
+│   │       │   ├── eval_info.json
+│   │       │   └── videos
+│   │       │       ├── eval_episode_0.mp4
+│   │       │       ├── eval_episode_1.mp4
+│   │       │       ├── eval_episode_2.mp4
+│   │       │       ├── eval_episode_3.mp4
+│   │       │       ├── eval_episode_4.mp4
+│   │       │       ├── eval_episode_5.mp4
+│   │       │       ├── eval_episode_6.mp4
+│   │       │       ├── eval_episode_7.mp4
+│   │       │       ├── eval_episode_8.mp4
+│   │       │       └── eval_episode_9.mp4
+│   │       └── 13-43-33_aloha_act
+│   │           ├── eval_info.json
+│   │           └── videos
+│   │               ├── eval_episode_0.mp4
+│   │               ├── eval_episode_1.mp4
+│   │               ├── eval_episode_2.mp4
+│   │               ├── eval_episode_3.mp4
+│   │               ├── eval_episode_4.mp4
+│   │               ├── eval_episode_5.mp4
+│   │               ├── eval_episode_6.mp4
+│   │               ├── eval_episode_7.mp4
+│   │               ├── eval_episode_8.mp4
+│   │               └── eval_episode_9.mp4
+│   ├── examples
+│   │   └── 1_load_lerobot_dataset
+│   │       └── episode_0.mp4
+│   └── train
+│       ├── 2024-06-21
+│       │   ├── 23-28-55_pusht_diffusion_default
+│       │   │   ├── checkpoints
+│       │   │   │   ├── 005000
+│       │   │   │   │   ├── pretrained_model
+│       │   │   │   │   │   ├── config.json
+│       │   │   │   │   │   ├── config.yaml
+│       │   │   │   │   │   ├── model.safetensors
+│       │   │   │   │   │   └── README.md
+│       │   │   │   │   └── training_state.pth
+│       │   │   │   └── last -> /home/h666/code/lerobot/outputs/train/2024-06-21/23-28-55_pusht_diffusion_default/checkpoints/005000
+│       │   │   ├── default.log
+│       │   │   └── eval
+│       │   │       └── videos_step_005000
+│       │   │           ├── eval_episode_0.mp4
+│       │   │           ├── eval_episode_1.mp4
+│       │   │           ├── eval_episode_2.mp4
+│       │   │           └── eval_episode_3.mp4
+│       │   └── 23-59-22_pusht_diffusion_default
+│       │       ├── default.log
+│       │       └── wandb
+│       │           ├── debug-internal.log -> run-20240621_235929-bk8mciye/logs/debug-internal.log
+│       │           ├── debug.log -> run-20240621_235929-bk8mciye/logs/debug.log
+│       │           ├── latest-run -> run-20240621_235929-bk8mciye
+│       │           └── run-20240621_235929-bk8mciye
+│       │               ├── files
+│       │               │   ├── conda-environment.yaml
+│       │               │   ├── config.yaml
+│       │               │   ├── output.log
+│       │               │   ├── requirements.txt
+│       │               │   ├── wandb-metadata.json
+│       │               │   └── wandb-summary.json
+│       │               ├── logs
+│       │               │   ├── debug-internal.log
+│       │               │   └── debug.log
+│       │               ├── run-bk8mciye.wandb
+│       │               └── tmp
+│       │                   └── code
+│       ├── 2024-06-22
+│       │   ├── 00-05-57_pusht_diffusion_default
+│       │   │   └── wandb
+│       │   └── 00-15-35_pusht_diffusion_default
+│       │       ├── checkpoints
+│       │       │   ├── 005000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 010000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 015000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 020000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 025000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 030000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 035000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 040000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 045000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 050000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 055000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 060000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 065000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 070000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 075000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   ├── 080000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   └── last -> /home/h666/code/lerobot/outputs/train/2024-06-22/00-15-35_pusht_diffusion_default/checkpoints/080000
+│       │       ├── default.log
+│       │       ├── eval
+│       │       │   ├── videos_step_005000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_010000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_015000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_020000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_025000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_030000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_035000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_040000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_045000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_050000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_055000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_060000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_065000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_070000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_075000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   └── videos_step_080000
+│       │       │       ├── eval_episode_0.mp4
+│       │       │       ├── eval_episode_1.mp4
+│       │       │       ├── eval_episode_2.mp4
+│       │       │       └── eval_episode_3.mp4
+│       │       └── wandb
+│       │           ├── debug-internal.log -> run-20240622_001537-ggro17uf/logs/debug-internal.log
+│       │           ├── debug.log -> run-20240622_001537-ggro17uf/logs/debug.log
+│       │           ├── latest-run -> run-20240622_001537-ggro17uf
+│       │           └── run-20240622_001537-ggro17uf
+│       │               ├── files
+│       │               │   ├── conda-environment.yaml
+│       │               │   ├── config.yaml
+│       │               │   ├── media
+│       │               │   │   └── videos
+│       │               │   │       └── eval
+│       │               │   │           ├── video_10000_fd55dea7ce40ac44f349.mp4
+│       │               │   │           ├── video_15000_40d9d6b282730859467e.mp4
+│       │               │   │           ├── video_20000_5143540d6c90fbbf2dc5.mp4
+│       │               │   │           ├── video_25000_3e8a9c6444c0d033b7b5.mp4
+│       │               │   │           ├── video_30000_a9c9867d0d625aa69022.mp4
+│       │               │   │           ├── video_35000_61ee2e15918f7bd875a7.mp4
+│       │               │   │           ├── video_40000_e2945e62acbc69b36f14.mp4
+│       │               │   │           ├── video_45000_c815aefa3280efd1664b.mp4
+│       │               │   │           ├── video_50000_eebbfe2ea992a44f121c.mp4
+│       │               │   │           ├── video_5000_47392d8f2a4e9b836a7f.mp4
+│       │               │   │           ├── video_55000_f7db9d2719971d834bc9.mp4
+│       │               │   │           ├── video_60000_e55c8278d3909150c38a.mp4
+│       │               │   │           ├── video_65000_c2392e639378e8087a8c.mp4
+│       │               │   │           ├── video_70000_1ac52e2d15fae236172a.mp4
+│       │               │   │           ├── video_75000_ea22f3af39866fc124e1.mp4
+│       │               │   │           └── video_80000_3ab5a827ab52861ac26a.mp4
+│       │               │   ├── output.log
+│       │               │   ├── requirements.txt
+│       │               │   ├── wandb-metadata.json
+│       │               │   └── wandb-summary.json
+│       │               ├── logs
+│       │               │   ├── debug-internal.log
+│       │               │   └── debug.log
+│       │               ├── run-ggro17uf.wandb
+│       │               └── tmp
+│       │                   └── code
+│       ├── 2024-06-24
+│       │   ├── 11-05-18_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   ├── checkpoints
+│       │   │   │   ├── 080000
+│       │   │   │   │   ├── pretrained_model
+│       │   │   │   │   │   ├── config.json
+│       │   │   │   │   │   ├── config.yaml
+│       │   │   │   │   │   ├── model.safetensors
+│       │   │   │   │   │   └── README.md
+│       │   │   │   │   └── training_state.pth
+│       │   │   │   └── last -> /home/h666/code/lerobot/outputs/train/2024-06-24/11-05-18_aloha_act_aloha_act/checkpoints/080000
+│       │   │   ├── eval
+│       │   │   │   ├── videos_step_010000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_020000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_030000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_040000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_050000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_060000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   ├── videos_step_070000
+│       │   │   │   │   ├── eval_episode_0.mp4
+│       │   │   │   │   ├── eval_episode_1.mp4
+│       │   │   │   │   ├── eval_episode_2.mp4
+│       │   │   │   │   └── eval_episode_3.mp4
+│       │   │   │   └── videos_step_080000
+│       │   │   │       ├── eval_episode_0.mp4
+│       │   │   │       ├── eval_episode_1.mp4
+│       │   │   │       ├── eval_episode_2.mp4
+│       │   │   │       └── eval_episode_3.mp4
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240624_143047-pzz6u2f7/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240624_143047-pzz6u2f7/logs/debug.log
+│       │   │       ├── latest-run -> run-20240624_143047-pzz6u2f7
+│       │   │       ├── run-20240624_110522-pzz6u2f7
+│       │   │       │   ├── files
+│       │   │       │   │   ├── conda-environment.yaml
+│       │   │       │   │   ├── config.yaml
+│       │   │       │   │   ├── media
+│       │   │       │   │   │   └── videos
+│       │   │       │   │   │       └── eval
+│       │   │       │   │   │           ├── video_10000_99c1f3116dada9bcaf5a.mp4
+│       │   │       │   │   │           ├── video_20000_2997a83d2a90ac90a6c6.mp4
+│       │   │       │   │   │           ├── video_30000_8c09cadd71919db9c5c5.mp4
+│       │   │       │   │   │           ├── video_40000_48128f3dd63aa9dfc905.mp4
+│       │   │       │   │   │           ├── video_50000_dbdb007c33a2a5931b34.mp4
+│       │   │       │   │   │           ├── video_60000_80b4192297443126c8d5.mp4
+│       │   │       │   │   │           ├── video_70000_8cea9a5f6198cd4a7219.mp4
+│       │   │       │   │   │           └── video_80000_823709d840f03453cef7.mp4
+│       │   │       │   │   ├── output.log
+│       │   │       │   │   ├── requirements.txt
+│       │   │       │   │   ├── wandb-metadata.json
+│       │   │       │   │   └── wandb-summary.json
+│       │   │       │   ├── logs
+│       │   │       │   │   ├── debug-internal.log
+│       │   │       │   │   └── debug.log
+│       │   │       │   ├── run-pzz6u2f7.wandb
+│       │   │       │   └── tmp
+│       │   │       │       └── code
+│       │   │       └── run-20240624_143047-pzz6u2f7
+│       │   │           ├── files
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-summary.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-pzz6u2f7.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 18-36-52_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240624_183657-hgtvotp6/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240624_183657-hgtvotp6/logs/debug.log
+│       │   │       ├── latest-run -> run-20240624_183657-hgtvotp6
+│       │   │       └── run-20240624_183657-hgtvotp6
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-metadata.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-hgtvotp6.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 18-37-44_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240624_183748-sh36le47/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240624_183748-sh36le47/logs/debug.log
+│       │   │       ├── latest-run -> run-20240624_183748-sh36le47
+│       │   │       └── run-20240624_183748-sh36le47
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   ├── wandb-metadata.json
+│       │   │           │   └── wandb-summary.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-sh36le47.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 18-38-24_aloha_act_aloha_act
+│       │   │   └── aloha_act.log
+│       │   └── 18-38-30_aloha_act_aloha_act
+│       │       ├── aloha_act.log
+│       │       ├── checkpoints
+│       │       │   ├── 080000
+│       │       │   │   ├── pretrained_model
+│       │       │   │   │   ├── config.json
+│       │       │   │   │   ├── config.yaml
+│       │       │   │   │   ├── model.safetensors
+│       │       │   │   │   └── README.md
+│       │       │   │   └── training_state.pth
+│       │       │   └── last -> /home/h666/code/lerobot/outputs/train/2024-06-24/18-38-30_aloha_act_aloha_act/checkpoints/080000
+│       │       ├── eval
+│       │       │   ├── videos_step_010000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_020000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_030000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_040000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_050000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_060000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   ├── videos_step_070000
+│       │       │   │   ├── eval_episode_0.mp4
+│       │       │   │   ├── eval_episode_1.mp4
+│       │       │   │   ├── eval_episode_2.mp4
+│       │       │   │   └── eval_episode_3.mp4
+│       │       │   └── videos_step_080000
+│       │       │       ├── eval_episode_0.mp4
+│       │       │       ├── eval_episode_1.mp4
+│       │       │       ├── eval_episode_2.mp4
+│       │       │       └── eval_episode_3.mp4
+│       │       └── wandb
+│       │           ├── debug-internal.log -> run-20240624_183833-oaeqb65u/logs/debug-internal.log
+│       │           ├── debug.log -> run-20240624_183833-oaeqb65u/logs/debug.log
+│       │           ├── latest-run -> run-20240624_183833-oaeqb65u
+│       │           └── run-20240624_183833-oaeqb65u
+│       │               ├── files
+│       │               │   ├── conda-environment.yaml
+│       │               │   ├── config.yaml
+│       │               │   ├── media
+│       │               │   │   └── videos
+│       │               │   │       └── eval
+│       │               │   │           ├── video_10000_11b5077d15c464e497f0.mp4
+│       │               │   │           ├── video_20000_954f9c7cbd96a928bb54.mp4
+│       │               │   │           ├── video_30000_88e693d8a9e266db95a8.mp4
+│       │               │   │           ├── video_40000_5a901cb6a6ebaa830b8a.mp4
+│       │               │   │           ├── video_50000_7fe5078a63b6966df756.mp4
+│       │               │   │           ├── video_60000_0544b8851525fdc7e6a7.mp4
+│       │               │   │           ├── video_70000_f9a8c5fce32e37774af5.mp4
+│       │               │   │           └── video_80000_35b69c5a24eda3f30cef.mp4
+│       │               │   ├── output.log
+│       │               │   ├── requirements.txt
+│       │               │   ├── wandb-metadata.json
+│       │               │   └── wandb-summary.json
+│       │               ├── logs
+│       │               │   ├── debug-internal.log
+│       │               │   └── debug.log
+│       │               ├── run-oaeqb65u.wandb
+│       │               └── tmp
+│       │                   └── code
+│       ├── 2024-06-25
+│       │   ├── 12-16-14_aloha_act_aloha_act
+│       │   │   └── aloha_act.log
+│       │   ├── 14-18-37_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240625_142823-w9vlusfn/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240625_142823-w9vlusfn/logs/debug.log
+│       │   │       ├── latest-run -> run-20240625_142823-w9vlusfn
+│       │   │       └── run-20240625_142823-w9vlusfn
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-metadata.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-w9vlusfn.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 14-31-18_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240625_143121-7l5l79mq/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240625_143121-7l5l79mq/logs/debug.log
+│       │   │       ├── latest-run -> run-20240625_143121-7l5l79mq
+│       │   │       └── run-20240625_143121-7l5l79mq
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-metadata.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-7l5l79mq.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 14-42-44_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240625_144247-js7h58ro/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240625_144247-js7h58ro/logs/debug.log
+│       │   │       ├── latest-run -> run-20240625_144247-js7h58ro
+│       │   │       └── run-20240625_144247-js7h58ro
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   ├── wandb-metadata.json
+│       │   │           │   └── wandb-summary.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-js7h58ro.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 14-43-48_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240625_144354-utd4qxgs/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240625_144354-utd4qxgs/logs/debug.log
+│       │   │       ├── latest-run -> run-20240625_144354-utd4qxgs
+│       │   │       └── run-20240625_144354-utd4qxgs
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-metadata.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-utd4qxgs.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   ├── 14-44-46_aloha_act_aloha_act
+│       │   │   ├── aloha_act.log
+│       │   │   └── wandb
+│       │   │       ├── debug-internal.log -> run-20240625_144452-vsgmmroo/logs/debug-internal.log
+│       │   │       ├── debug.log -> run-20240625_144452-vsgmmroo/logs/debug.log
+│       │   │       ├── latest-run -> run-20240625_144452-vsgmmroo
+│       │   │       └── run-20240625_144452-vsgmmroo
+│       │   │           ├── files
+│       │   │           │   ├── conda-environment.yaml
+│       │   │           │   ├── config.yaml
+│       │   │           │   ├── output.log
+│       │   │           │   ├── requirements.txt
+│       │   │           │   └── wandb-metadata.json
+│       │   │           ├── logs
+│       │   │           │   ├── debug-internal.log
+│       │   │           │   └── debug.log
+│       │   │           ├── run-vsgmmroo.wandb
+│       │   │           └── tmp
+│       │   │               └── code
+│       │   └── 14-55-46_aloha_act_aloha_act
+│       │       ├── aloha_act.log
+│       │       └── wandb
+│       │           ├── debug-internal.log -> run-20240625_145553-yzuvsq37/logs/debug-internal.log
+│       │           ├── debug.log -> run-20240625_145553-yzuvsq37/logs/debug.log
+│       │           ├── latest-run -> run-20240625_145553-yzuvsq37
+│       │           └── run-20240625_145553-yzuvsq37
+│       │               ├── files
+│       │               │   ├── conda-environment.yaml
+│       │               │   ├── config.yaml
+│       │               │   ├── output.log
+│       │               │   ├── requirements.txt
+│       │               │   └── wandb-metadata.json
+│       │               ├── logs
+│       │               │   ├── debug-internal.log
+│       │               │   └── debug.log
+│       │               ├── run-yzuvsq37.wandb
+│       │               └── tmp
+│       │                   └── code
+│       ├── example_pusht_diffusion
+│       └── favorite
+│           └── 14-33-35_aloha_act_aloha_act
+│               ├── aloha_act.log
+│               ├── checkpoints
+│               │   ├── 080000
+│               │   │   ├── pretrained_model
+│               │   │   │   ├── config.json
+│               │   │   │   ├── config.yaml
+│               │   │   │   ├── model.safetensors
+│               │   │   │   └── README.md
+│               │   │   └── training_state.pth
+│               │   └── last -> /home/h666/code/lerobot/outputs/train/2024-06-24/14-33-35_aloha_act_aloha_act/checkpoints/080000
+│               ├── eval
+│               │   ├── videos_step_010000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_020000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_030000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_040000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_050000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_060000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   ├── videos_step_070000
+│               │   │   ├── eval_episode_0.mp4
+│               │   │   ├── eval_episode_1.mp4
+│               │   │   ├── eval_episode_2.mp4
+│               │   │   └── eval_episode_3.mp4
+│               │   └── videos_step_080000
+│               │       ├── eval_episode_0.mp4
+│               │       ├── eval_episode_1.mp4
+│               │       ├── eval_episode_2.mp4
+│               │       └── eval_episode_3.mp4
+│               └── wandb
+│                   ├── debug-internal.log -> run-20240624_143337-jvqt2es6/logs/debug-internal.log
+│                   ├── debug.log -> run-20240624_143337-jvqt2es6/logs/debug.log
+│                   ├── latest-run -> run-20240624_143337-jvqt2es6
+│                   └── run-20240624_143337-jvqt2es6
+│                       ├── files
+│                       │   ├── conda-environment.yaml
+│                       │   ├── config.yaml
+│                       │   ├── media
+│                       │   │   └── videos
+│                       │   │       └── eval
+│                       │   │           ├── video_10000_81f03dc0e136dead047a.mp4
+│                       │   │           ├── video_20000_aaf815cb386e230ed4ea.mp4
+│                       │   │           ├── video_30000_df8cca88315437b14c75.mp4
+│                       │   │           ├── video_40000_4b1cd0c0bb0481383827.mp4
+│                       │   │           ├── video_50000_d2727958cbb3eb349ce0.mp4
+│                       │   │           ├── video_60000_f261ffedb23b9c427473.mp4
+│                       │   │           ├── video_70000_bcb5abe700609f06526e.mp4
+│                       │   │           └── video_80000_4709acd9394d21e55cd0.mp4
+│                       │   ├── output.log
+│                       │   ├── requirements.txt
+│                       │   ├── wandb-metadata.json
+│                       │   └── wandb-summary.json
+│                       ├── logs
+│                       │   ├── debug-internal.log
+│                       │   └── debug.log
+│                       ├── run-jvqt2es6.wandb
+│                       └── tmp
+│                           └── code
+├── poetry.lock
+├── pyproject.toml
+├── README.md
+└── tests
+    ├── conftest.py
+    ├── data
+    │   ├── lerobot
+    │   │   ├── aloha_mobile_cabinet
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_mobile_chair
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_mobile_elevator
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_mobile_shrimp
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_mobile_wash_pan
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_mobile_wipe_wine
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_sim_insertion_human
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.images.top_episode_000000.mp4
+    │   │   ├── aloha_sim_insertion_human_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── aloha_sim_insertion_scripted
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.images.top_episode_000000.mp4
+    │   │   ├── aloha_sim_insertion_scripted_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── aloha_sim_transfer_cube_human
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.images.top_episode_000000.mp4
+    │   │   ├── aloha_sim_transfer_cube_human_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── aloha_sim_transfer_cube_scripted
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.images.top_episode_000000.mp4
+    │   │   ├── aloha_sim_transfer_cube_scripted_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── aloha_static_battery
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_candy
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_coffee
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_coffee_new
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_cups_open
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_fork_pick_up
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_pingpong_test
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_pro_pencil
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_screw_driver
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_tape
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_thread_velcro
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_towel
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_vinh_cup
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_vinh_cup_left
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── aloha_static_ziploc_slide
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       ├── observation.images.cam_high_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_left_wrist_episode_000000.mp4
+    │   │   │       ├── observation.images.cam_low_episode_000000.mp4
+    │   │   │       └── observation.images.cam_right_wrist_episode_000000.mp4
+    │   │   ├── pusht
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   ├── pusht_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── umi_cup_in_the_wild
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   ├── xarm_lift_medium
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   ├── xarm_lift_medium_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── xarm_lift_medium_replay
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   ├── xarm_lift_medium_replay_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── xarm_push_medium
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   ├── xarm_push_medium_image
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   └── train
+    │   │   │       ├── data-00000-of-00001.arrow
+    │   │   │       ├── dataset_info.json
+    │   │   │       └── state.json
+    │   │   ├── xarm_push_medium_replay
+    │   │   │   ├── meta_data
+    │   │   │   │   ├── episode_data_index.safetensors
+    │   │   │   │   ├── info.json
+    │   │   │   │   └── stats.safetensors
+    │   │   │   ├── train
+    │   │   │   │   ├── data-00000-of-00001.arrow
+    │   │   │   │   ├── dataset_info.json
+    │   │   │   │   └── state.json
+    │   │   │   └── videos
+    │   │   │       └── observation.image_episode_000000.mp4
+    │   │   └── xarm_push_medium_replay_image
+    │   │       ├── meta_data
+    │   │       │   ├── episode_data_index.safetensors
+    │   │       │   ├── info.json
+    │   │       │   └── stats.safetensors
+    │   │       └── train
+    │   │           ├── data-00000-of-00001.arrow
+    │   │           ├── dataset_info.json
+    │   │           └── state.json
+    │   ├── save_dataset_to_safetensors
+    │   │   └── lerobot
+    │   │       ├── aloha_mobile_cabinet
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1498.safetensors
+    │   │       │   ├── frame_1499.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_750.safetensors
+    │   │       │   └── frame_751.safetensors
+    │   │       ├── aloha_mobile_chair
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1000.safetensors
+    │   │       │   ├── frame_1001.safetensors
+    │   │       │   ├── frame_1998.safetensors
+    │   │       │   ├── frame_1999.safetensors
+    │   │       │   └── frame_1.safetensors
+    │   │       ├── aloha_mobile_elevator
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1125.safetensors
+    │   │       │   ├── frame_1126.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_2248.safetensors
+    │   │       │   └── frame_2249.safetensors
+    │   │       ├── aloha_mobile_shrimp
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1875.safetensors
+    │   │       │   ├── frame_1876.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_3748.safetensors
+    │   │       │   └── frame_3749.safetensors
+    │   │       ├── aloha_mobile_wash_pan
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1098.safetensors
+    │   │       │   ├── frame_1099.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_550.safetensors
+    │   │       │   └── frame_551.safetensors
+    │   │       ├── aloha_mobile_wipe_wine
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1298.safetensors
+    │   │       │   ├── frame_1299.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_650.safetensors
+    │   │       │   └── frame_651.safetensors
+    │   │       ├── aloha_sim_insertion_human
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_250.safetensors
+    │   │       │   ├── frame_251.safetensors
+    │   │       │   ├── frame_498.safetensors
+    │   │       │   └── frame_499.safetensors
+    │   │       ├── aloha_sim_insertion_human_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_250.safetensors
+    │   │       │   ├── frame_251.safetensors
+    │   │       │   ├── frame_498.safetensors
+    │   │       │   └── frame_499.safetensors
+    │   │       ├── aloha_sim_insertion_scripted
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_sim_insertion_scripted_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_sim_transfer_cube_human
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_sim_transfer_cube_human_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_sim_transfer_cube_scripted
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_sim_transfer_cube_scripted_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_static_battery
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_300.safetensors
+    │   │       │   ├── frame_301.safetensors
+    │   │       │   ├── frame_598.safetensors
+    │   │       │   └── frame_599.safetensors
+    │   │       ├── aloha_static_candy
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_350.safetensors
+    │   │       │   ├── frame_351.safetensors
+    │   │       │   ├── frame_698.safetensors
+    │   │       │   └── frame_699.safetensors
+    │   │       ├── aloha_static_coffee
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1098.safetensors
+    │   │       │   ├── frame_1099.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_550.safetensors
+    │   │       │   └── frame_551.safetensors
+    │   │       ├── aloha_static_coffee_new
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1498.safetensors
+    │   │       │   ├── frame_1499.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_750.safetensors
+    │   │       │   └── frame_751.safetensors
+    │   │       ├── aloha_static_cups_open
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_static_fork_pick_up
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_300.safetensors
+    │   │       │   ├── frame_301.safetensors
+    │   │       │   ├── frame_598.safetensors
+    │   │       │   └── frame_599.safetensors
+    │   │       ├── aloha_static_pingpong_test
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_300.safetensors
+    │   │       │   ├── frame_301.safetensors
+    │   │       │   ├── frame_598.safetensors
+    │   │       │   └── frame_599.safetensors
+    │   │       ├── aloha_static_pro_pencil
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_175.safetensors
+    │   │       │   ├── frame_176.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_348.safetensors
+    │   │       │   └── frame_349.safetensors
+    │   │       ├── aloha_static_screw_driver
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── aloha_static_tape
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_350.safetensors
+    │   │       │   ├── frame_351.safetensors
+    │   │       │   ├── frame_698.safetensors
+    │   │       │   └── frame_699.safetensors
+    │   │       ├── aloha_static_thread_velcro
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_300.safetensors
+    │   │       │   ├── frame_301.safetensors
+    │   │       │   ├── frame_598.safetensors
+    │   │       │   └── frame_599.safetensors
+    │   │       ├── aloha_static_towel
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_250.safetensors
+    │   │       │   ├── frame_251.safetensors
+    │   │       │   ├── frame_498.safetensors
+    │   │       │   └── frame_499.safetensors
+    │   │       ├── aloha_static_vinh_cup
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_250.safetensors
+    │   │       │   ├── frame_251.safetensors
+    │   │       │   ├── frame_498.safetensors
+    │   │       │   └── frame_499.safetensors
+    │   │       ├── aloha_static_vinh_cup_left
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_250.safetensors
+    │   │       │   ├── frame_251.safetensors
+    │   │       │   ├── frame_498.safetensors
+    │   │       │   └── frame_499.safetensors
+    │   │       ├── aloha_static_ziploc_slide
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_150.safetensors
+    │   │       │   ├── frame_151.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_298.safetensors
+    │   │       │   └── frame_299.safetensors
+    │   │       ├── pusht
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_159.safetensors
+    │   │       │   ├── frame_160.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_80.safetensors
+    │   │       │   └── frame_81.safetensors
+    │   │       ├── pusht_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_159.safetensors
+    │   │       │   ├── frame_160.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_80.safetensors
+    │   │       │   └── frame_81.safetensors
+    │   │       ├── umi_cup_in_the_wild
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_200.safetensors
+    │   │       │   ├── frame_201.safetensors
+    │   │       │   ├── frame_398.safetensors
+    │   │       │   └── frame_399.safetensors
+    │   │       ├── xarm_lift_medium
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_lift_medium_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_lift_medium_replay
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_lift_medium_replay_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_push_medium
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_push_medium_image
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       ├── xarm_push_medium_replay
+    │   │       │   ├── frame_0.safetensors
+    │   │       │   ├── frame_12.safetensors
+    │   │       │   ├── frame_13.safetensors
+    │   │       │   ├── frame_1.safetensors
+    │   │       │   ├── frame_23.safetensors
+    │   │       │   └── frame_24.safetensors
+    │   │       └── xarm_push_medium_replay_image
+    │   │           ├── frame_0.safetensors
+    │   │           ├── frame_12.safetensors
+    │   │           ├── frame_13.safetensors
+    │   │           ├── frame_1.safetensors
+    │   │           ├── frame_23.safetensors
+    │   │           └── frame_24.safetensors
+    │   ├── save_image_transforms_to_safetensors
+    │   │   ├── default_transforms.safetensors
+    │   │   └── single_transforms.safetensors
+    │   └── save_policy_to_safetensors
+    │       ├── aloha_act
+    │       │   ├── actions.safetensors
+    │       │   ├── grad_stats.safetensors
+    │       │   ├── output_dict.safetensors
+    │       │   └── param_stats.safetensors
+    │       ├── aloha_act_1000_steps
+    │       │   ├── actions.safetensors
+    │       │   ├── grad_stats.safetensors
+    │       │   ├── output_dict.safetensors
+    │       │   └── param_stats.safetensors
+    │       ├── dora_aloha_real_act_real
+    │       │   ├── actions.safetensors
+    │       │   ├── grad_stats.safetensors
+    │       │   ├── output_dict.safetensors
+    │       │   └── param_stats.safetensors
+    │       ├── dora_aloha_real_act_real_no_state
+    │       │   ├── actions.safetensors
+    │       │   ├── grad_stats.safetensors
+    │       │   ├── output_dict.safetensors
+    │       │   └── param_stats.safetensors
+    │       ├── pusht_diffusion
+    │       │   ├── actions.safetensors
+    │       │   ├── grad_stats.safetensors
+    │       │   ├── output_dict.safetensors
+    │       │   └── param_stats.safetensors
+    │       └── xarm_tdmpc
+    │           ├── actions.safetensors
+    │           ├── grad_stats.safetensors
+    │           ├── output_dict.safetensors
+    │           └── param_stats.safetensors
+    ├── __init__.py
+    ├── scripts
+    │   ├── save_dataset_to_safetensors.py
+    │   ├── save_image_transforms_to_safetensors.py
+    │   └── save_policy_to_safetensors.py
+    ├── test_available.py
+    ├── test_datasets.py
+    ├── test_envs.py
+    ├── test_examples.py
+    ├── test_image_transforms.py
+    ├── test_policies.py
+    ├── test_push_dataset_to_hub.py
+    ├── test_sampler.py
+    ├── test_utils.py
+    ├── test_visualize_dataset.py
+    └── utils.py
+
+466 directories, 1201 files

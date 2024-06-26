@@ -1,15 +1,16 @@
 defaults:
   - _self_
-  - env: pusht
-  - policy: diffusion
+  - env: aloha
+  - policy: act
 
 hydra:
   run:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
-    dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
+     dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
+    #dir: outputs/train/2024-06-24/11-05-18_aloha_act_aloha_act
   job:
-    name: default
+    name: aloha_act
 
 # Set `resume` to true to resume a previous run. In order for this to work, you will need to make sure
 # `hydra.run.dir` is the directory of an existing run with at least one checkpoint in it.
@@ -27,7 +28,7 @@ seed: ???
 # keys common between the datasets are kept. Each dataset gets and additional transform that inserts the
 # "dataset_index" into the returned item. The index mapping is made according to the order in which the
 # datsets are provided.
-dataset_repo_id: lerobot/pusht
+dataset_repo_id: [lerobot/aloha_sim_insertion_scripted_image,lerobot/aloha_sim_transfer_cube_human]
 video_backend: pyav
 
 training:

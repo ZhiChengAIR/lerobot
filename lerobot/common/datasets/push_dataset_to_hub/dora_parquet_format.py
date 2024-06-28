@@ -42,10 +42,12 @@ def check_format(raw_dir) -> bool:
 
 def load_from_raw(raw_dir: Path, videos_dir: Path, fps: int, video: bool, episodes: list[int] | None = None):
     # Load data stream that will be used as reference for the timestamps synchronization
+    # 从指定目录 raw_dir 中查找符合特定命名模式的 Parquet 文件，并将这些文件存储在一个列表中
     reference_files = list(raw_dir.glob("observation.images.cam_*.parquet"))
     if len(reference_files) == 0:
         raise ValueError(f"Missing reference files for camera, starting with  in '{raw_dir}'")
     # select first camera in alphanumeric order
+    # 从 reference_files 列表中获取第一个文件，并提取该文件的基本名称（不带扩展名部分）
     reference_key = sorted(reference_files)[0].stem
     reference_df = pd.read_parquet(raw_dir / f"{reference_key}.parquet")
     reference_df = reference_df[["timestamp_utc", reference_key]]

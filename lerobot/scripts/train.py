@@ -66,7 +66,9 @@ def make_optimizer_and_scheduler(cfg, policy):
             },
         ]
         optimizer = torch.optim.AdamW(
-            optimizer_params_dicts, lr=cfg.training.lr, weight_decay=cfg.training.weight_decay
+            optimizer_params_dicts,
+            lr=cfg.training.lr,
+            weight_decay=cfg.training.weight_decay,
         )
         lr_scheduler = None
     elif cfg.policy.name == "diffusion":
@@ -89,7 +91,10 @@ def make_optimizer_and_scheduler(cfg, policy):
         optimizer = torch.optim.Adam(policy.parameters(), cfg.training.lr)
         lr_scheduler = None
     elif cfg.policy.name == "vqbet":
-        from lerobot.common.policies.vqbet.modeling_vqbet import VQBeTOptimizer, VQBeTScheduler
+        from lerobot.common.policies.vqbet.modeling_vqbet import (
+            VQBeTOptimizer,
+            VQBeTScheduler,
+        )
 
         optimizer = VQBeTOptimizer(policy, cfg)
         lr_scheduler = VQBeTScheduler(optimizer, cfg)
@@ -242,7 +247,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
                 "You have set resume=True, but there is no model checkpoint in "
                 f"{Logger.get_last_checkpoint_dir(out_dir)}"
             )
-        checkpoint_cfg_path = str(Logger.get_last_pretrained_model_dir(out_dir) / "config.yaml")
+        checkpoint_cfg_path = str(
+            Logger.get_last_pretrained_model_dir(out_dir) / "config.yaml"
+        )
         logging.info(
             colored(
                 "You have set resume=True, indicating that you wish to resume a run",
@@ -255,7 +262,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
         # Check for differences between the checkpoint configuration and provided configuration.
         # Hack to resolve the delta_timestamps ahead of time in order to properly diff.
         resolve_delta_timestamps(cfg)
-        diff = DeepDiff(OmegaConf.to_container(checkpoint_cfg), OmegaConf.to_container(cfg))
+        diff = DeepDiff(
+            OmegaConf.to_container(checkpoint_cfg), OmegaConf.to_container(cfg)
+        )
         # Ignore the `resume` and parameters.
         if "values_changed" in diff and "root['resume']" in diff["values_changed"]:
             del diff["values_changed"]["root['resume']"]
@@ -310,7 +319,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     policy = make_policy(
         hydra_cfg=cfg,
         dataset_stats=offline_dataset.stats if not cfg.resume else None,
-        pretrained_policy_name_or_path=str(logger.last_pretrained_model_dir) if cfg.resume else None,
+        pretrained_policy_name_or_path=(
+            str(logger.last_pretrained_model_dir) if cfg.resume else None
+        ),
     )
     assert isinstance(policy, nn.Module)
     # Create optimizer and scheduler
@@ -323,36 +334,57 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     if cfg.resume:
         step = logger.load_last_training_state(optimizer, lr_scheduler)
 
-    num_learnable_params = sum(p.numel() for p in policy.parameters() if p.requires_grad)
+    num_learnable_params = sum(
+        p.numel() for p in policy.parameters() if p.requires_grad
+    )
     num_total_params = sum(p.numel() for p in policy.parameters())
 
     log_output_dir(out_dir)
     logging.info(f"{cfg.env.task=}")
-    logging.info(f"{cfg.training.offline_steps=} ({format_big_number(cfg.training.offline_steps)})")
+    logging.info(
+        f"{cfg.training.offline_steps=} ({format_big_number(cfg.training.offline_steps)})"
+    )
     logging.info(f"{cfg.training.online_steps=}")
-    logging.info(f"{offline_dataset.num_samples=} ({format_big_number(offline_dataset.num_samples)})")
+    logging.info(
+        f"{offline_dataset.num_samples=} ({format_big_number(offline_dataset.num_samples)})"
+    )
     logging.info(f"{offline_dataset.num_episodes=}")
     logging.info(f"{num_learnable_params=} ({format_big_number(num_learnable_params)})")
     logging.info(f"{num_total_params=} ({format_big_number(num_total_params)})")
 
     # Note: this helper will be used in offline and online training loops.
     def evaluate_and_checkpoint_if_needed(step):
-        _num_digits = max(6, len(str(cfg.training.offline_steps + cfg.training.online_steps)))
+        _num_digits = max(
+            6, len(str(cfg.training.offline_steps + cfg.training.online_steps))
+        )
         step_identifier = f"{step:0{_num_digits}d}"
 
         if cfg.training.eval_freq > 0 and step % cfg.training.eval_freq == 0:
             logging.info(f"Eval policy at step {step}")
-            with torch.no_grad(), torch.autocast(device_type=device.type) if cfg.use_amp else nullcontext():
+            with torch.no_grad(), (
+                torch.autocast(device_type=device.type)
+                if cfg.use_amp
+                else nullcontext()
+            ):
                 assert eval_env is not None
                 eval_info = eval_policy(
                     eval_env,
                     policy,
                     cfg.eval.n_episodes,
-                    videos_dir=Path(out_dir) / "eval" / f"videos_step_{step_identifier}",
+                    videos_dir=Path(out_dir)
+                    / "eval"
+                    / f"videos_step_{step_identifier}",
                     max_episodes_rendered=4,
                     start_seed=cfg.seed,
                 )
-            log_eval_info(logger, eval_info["aggregated"], step, cfg, offline_dataset, is_offline=True)
+            log_eval_info(
+                logger,
+                eval_info["aggregated"],
+                step,
+                cfg,
+                offline_dataset,
+                is_offline=True,
+            )
             if cfg.wandb.enable:
                 logger.log_video(eval_info["video_paths"][0], step, mode="eval")
             logging.info("Resume training")
@@ -420,7 +452,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
         train_info["dataloading_s"] = dataloading_s
 
         if step % cfg.training.log_freq == 0:
-            log_train_info(logger, train_info, step, cfg, offline_dataset, is_offline=True)
+            log_train_info(
+                logger, train_info, step, cfg, offline_dataset, is_offline=True
+            )
 
         # Note: evaluate_and_checkpoint_if_needed happens **after** the `step`th training update has completed,
         # so we pass in step + 1.
@@ -433,7 +467,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     logging.info("End of training")
 
 
-@hydra.main(version_base="1.2", config_name="aloha_act_real", config_path="../configs")
+@hydra.main(
+    version_base="1.2", config_name="pusht_diffusion_zcai", config_path="../configs"
+)
 def train_cli(cfg: dict):
     train(
         cfg,
@@ -442,7 +478,9 @@ def train_cli(cfg: dict):
     )
 
 
-def train_notebook(out_dir=None, job_name=None, config_name="default", config_path="../configs"):
+def train_notebook(
+    out_dir=None, job_name=None, config_name="default", config_path="../configs"
+):
     from hydra import compose, initialize
 
     hydra.core.global_hydra.GlobalHydra.instance().clear()

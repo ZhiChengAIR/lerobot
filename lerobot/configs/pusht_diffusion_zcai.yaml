@@ -27,7 +27,7 @@ seed: ???
 # keys common between the datasets are kept. Each dataset gets and additional transform that inserts the
 # "dataset_index" into the returned item. The index mapping is made according to the order in which the
 # datsets are provided.
-dataset_repo_id: zcai-robot/pusht
+dataset_repo_id: zcai_robot/pusht
 video_backend: pyav
 
 training:

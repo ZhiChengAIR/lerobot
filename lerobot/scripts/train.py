@@ -467,9 +467,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     logging.info("End of training")
 
 
-@hydra.main(
-    version_base="1.2", config_name="pusht_diffusion_zcai", config_path="../configs"
-)
+@hydra.main(version_base="1.2", config_name="default", config_path="../configs")
 def train_cli(cfg: dict):
     train(
         cfg,

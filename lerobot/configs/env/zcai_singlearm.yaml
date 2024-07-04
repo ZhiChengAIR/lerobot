@@ -1,0 +1,11 @@
+# @package _global_
+
+fps: 10
+
+env:
+  name: dora
+  task: PushT-v0
+  image_size: 96
+  state_dim: 7
+  action_dim: 7
+  fps: ${fps}

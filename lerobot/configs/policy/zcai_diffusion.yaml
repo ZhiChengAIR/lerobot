@@ -5,31 +5,31 @@
 #       https://github.com/huggingface/lerobot/pull/134 for more details.
 
 seed: 100000
-dataset_repo_id: zcai_robot/pusht
+#dataset_repo_id: zcai/pusht
 
-override_dataset_stats:
-  # TODO(rcadene, alexander-soare): should we remove image stats as well? do we use a pretrained vision model?
-  observation.image:
-    mean: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
-    std: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
-  # TODO(rcadene, alexander-soare): we override state and action stats to use the same as the pretrained model
-  # from the original codebase, but we should remove these and train our own pretrained model
-  observation.state:
-    min: [13.456424, 32.938293]
-    max: [496.14618, 510.9579]
-  action:
-    min: [12.0, 25.0]
-    max: [511.0, 511.0]
+# override_dataset_stats:
+#   # TODO(rcadene, alexander-soare): should we remove image stats as well? do we use a pretrained vision model?
+#   observation.image:
+#     mean: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
+#     std: [[[0.5]], [[0.5]], [[0.5]]]  # (c,1,1)
+#   # TODO(rcadene, alexander-soare): we override state and action stats to use the same as the pretrained model
+#   # from the original codebase, but we should remove these and train our own pretrained model
+#   observation.state:
+#     min: [13.456424, 32.938293]
+#     max: [496.14618, 510.9579]
+#   action:
+#     min: [12.0, 25.0]
+#     max: [511.0, 511.0]
 
 training:
   offline_steps: 200000
   online_steps: 0
-  eval_freq: 5000
+  eval_freq: -1
   save_freq: 5000
   log_freq: 250
   save_checkpoint: true
 
-  batch_size: 64
+  batch_size: 128
   grad_clip_norm: 10
   lr: 1.0e-4
   lr_scheduler: cosine
@@ -40,7 +40,8 @@ training:
   online_steps_between_rollouts: 1
 
   delta_timestamps:
-    observation.image: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.image.camera_0: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.image.camera_1: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
 
@@ -62,14 +63,16 @@ policy:
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
-    observation.image: [3, 96, 96]
+    observation.image.camera_0: [3, 240, 320]
+    observation.image.camera_1: [3, 240, 320]
     observation.state: ["${env.state_dim}"]
   output_shapes:
     action: ["${env.action_dim}"]
 
   # Normalization / Unnormalization
   input_normalization_modes:
-    observation.image: mean_std
+    observation.image.camera_0: mean_std
+    observation.image.camera_1: mean_std
     observation.state: min_max
   output_normalization_modes:
     action: min_max

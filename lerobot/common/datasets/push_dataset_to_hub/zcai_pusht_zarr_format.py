@@ -22,10 +22,15 @@ import numpy as np
 import torch
 import tqdm
 import zarr
+import os
+import ossaudiodev
 from datasets import Dataset, Features, Image, Sequence, Value
 from PIL import Image as PILImage
 
-from lerobot.common.datasets.push_dataset_to_hub.utils import concatenate_episodes, save_images_concurrently
+from lerobot.common.datasets.push_dataset_to_hub.utils import (
+    concatenate_episodes,
+    save_images_concurrently,
+)
 from lerobot.common.datasets.utils import (
     calculate_episode_data_index,
     hf_transform_to_torch,
@@ -33,56 +38,36 @@ from lerobot.common.datasets.utils import (
 from lerobot.common.datasets.video_utils import VideoFrame, encode_video_frames
 
 
-def check_format(raw_dir):
-    zarr_path = raw_dir / "pusht_cchi_v7_replay.zarr"
-    zarr_data = zarr.open(zarr_path, mode="r")
+def load_from_raw(
+    raw_dir: Path,
+    videos_dir: Path,
+    fps: int,
+    video: bool,
+    episodes: list[int] | None = None,
+):
+    from lerobot.common.datasets.push_dataset_to_hub._diffusion_policy_replay_buffer import (
+        ReplayBuffer as DiffusionPolicyReplayBuffer,
+    )
+    from numcodecs import register_codec
+    from imagecodecs.numcodecs import Jpeg2k
 
-    required_datasets = {
-        "data/action",
-        "data/img",
-        "data/keypoint",
-        "data/n_contacts",
-        "data/state",
-        "meta/episode_ends",
-    }
-    for dataset in required_datasets:
-        assert dataset in zarr_data
-    nb_frames = zarr_data["data/img"].shape[0]
+    # 手动注册 JPEG 2000 编解码器
+    register_codec(Jpeg2k)
 
-    required_datasets.remove("meta/episode_ends")
-
-    assert all(nb_frames == zarr_data[dataset].shape[0] for dataset in required_datasets)
-
-
-def load_from_raw(raw_dir: Path, videos_dir: Path, fps: int, video: bool, episodes: list[int] | None = None):
-    try:
-        import pymunk
-        from gym_pusht.envs.pusht import PushTEnv, pymunk_to_shapely
-
-        from lerobot.common.datasets.push_dataset_to_hub._diffusion_policy_replay_buffer import (
-            ReplayBuffer as DiffusionPolicyReplayBuffer,
+    zarr_path = list(raw_dir.glob("*.zip"))[0]
+    with zarr.ZipStore(zarr_path, mode="r") as zip_store:
+        zarr_data = DiffusionPolicyReplayBuffer.copy_from_store(
+            src_store=zip_store, store=zarr.MemoryStore()
         )
-    except ModuleNotFoundError as e:
-        print("`gym_pusht` is not installed. Please install it with `pip install 'lerobot[gym_pusht]'`")
-        raise e
-    # as define in gmy-pusht env: https://github.com/huggingface/gym-pusht/blob/e0684ff988d223808c0a9dcfaba9dc4991791370/gym_pusht/envs/pusht.py#L174
-    success_threshold = 0.95  # 95% coverage,
-
-    zarr_path = raw_dir / "pusht_cchi_v7_replay.zarr"
-    zarr_data = DiffusionPolicyReplayBuffer.copy_from_path(zarr_path)
 
     episode_ids = torch.from_numpy(zarr_data.get_episode_idxs())
     assert len(
         {zarr_data[key].shape[0] for key in zarr_data.keys()}  # noqa: SIM118
     ), "Some data type dont have the same number of total frames."
 
-    # TODO(rcadene): verify that goal pose is expected to be fixed
-    goal_pos_angle = np.array([256, 256, np.pi / 4])  # x, y, theta (in radians)
-    goal_body = PushTEnv.get_goal_pose_body(goal_pos_angle)
-
-    imgs = torch.from_numpy(zarr_data["img"])  # b h w c
-    states = torch.from_numpy(zarr_data["state"])
-    actions = torch.from_numpy(zarr_data["action"])
+    states = torch.from_numpy(zarr_data["robot_eef_pose"][:])
+    actions = torch.from_numpy(zarr_data["action"][:])
+    robot_gripper_qpos = torch.from_numpy(zarr_data["robot_gripper_qpos"][:])
 
     # load data indices from which each episode starts and ends
     from_ids, to_ids = [], []
@@ -96,90 +81,67 @@ def load_from_raw(raw_dir: Path, videos_dir: Path, fps: int, video: bool, episod
 
     ep_dicts = []
     ep_ids = episodes if episodes else range(num_episodes)
-    for ep_idx, selected_ep_idx in tqdm.tqdm(enumerate(ep_ids)):
-        from_idx = from_ids[selected_ep_idx]
-        to_idx = to_ids[selected_ep_idx]
-        num_frames = to_idx - from_idx
+    raw_video_dir = raw_dir / "videos"
+    ## get camera names in subfolder of raw_video_dir randomly
+    camera_names = [cam for cam in zarr_data.data.keys() if "camera" in cam]
+    img_keys = [f"observation.image.{key}" for key in camera_names]
+    video_path = Path(videos_dir)
+    video_path.mkdir(parents=True, exist_ok=True)
+    # for every episode
+    with tqdm.tqdm(
+        total=len(ep_ids), desc="Loading image data", mininterval=1.0
+    ) as pbar:
+        for ep_idx, selected_ep_idx in enumerate(ep_ids):
+            from_idx = from_ids[selected_ep_idx]
+            to_idx = to_ids[selected_ep_idx]
+            num_frames = to_idx - from_idx
 
-        # sanity check
-        assert (episode_ids[from_idx:to_idx] == ep_idx).all()
+            # sanity check
+            assert (episode_ids[from_idx:to_idx] == ep_idx).all()
 
-        # get image
-        image = imgs[from_idx:to_idx]
-        assert image.min() >= 0.0
-        assert image.max() <= 255.0
-        image = image.type(torch.uint8)
+            # construct ep_dict and appended to ep_dicts
+            ep_dict = {}
 
-        # get state
-        state = states[from_idx:to_idx]
-        agent_pos = state[:, :2]
-        block_pos = state[:, 2:4]
-        block_angle = state[:, 4]
+            ep_dict["observation.state"] = states[from_idx:to_idx]
+            ep_dict["action"] = actions[from_idx:to_idx]
+            ep_dict["episode_index"] = torch.tensor(
+                [ep_idx] * num_frames, dtype=torch.int64
+            )
+            ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
+            ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
 
-        # get reward, success, done
-        reward = torch.zeros(num_frames)
-        success = torch.zeros(num_frames, dtype=torch.bool)
-        done = torch.zeros(num_frames, dtype=torch.bool)
-        for i in range(num_frames):
-            space = pymunk.Space()
-            space.gravity = 0, 0
-            space.damping = 0
+            # constract label "observation.image" for ep_dict and save video to video_dir
+            for key in camera_names:
+                ## get image
+                image = torch.from_numpy(zarr_data[key][from_idx:to_idx])
+                assert image.min() >= 0.0
+                assert image.max() <= 255.0
+                image = image.type(torch.uint8)
+                imgs_array = [x.numpy() for x in image]
+                img_key = f"observation.image.{key}"
+                if video:
+                    # save png images in temporary directory
+                    tmp_imgs_dir = videos_dir / "tmp_images"
+                    save_images_concurrently(imgs_array, tmp_imgs_dir)
 
-            # Add walls.
-            walls = [
-                PushTEnv.add_segment(space, (5, 506), (5, 5), 2),
-                PushTEnv.add_segment(space, (5, 5), (506, 5), 2),
-                PushTEnv.add_segment(space, (506, 5), (506, 506), 2),
-                PushTEnv.add_segment(space, (5, 506), (506, 506), 2),
-            ]
-            space.add(*walls)
+                    # encode images to a mp4 video
+                    fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
+                    video_path = videos_dir / fname
+                    encode_video_frames(tmp_imgs_dir, video_path, fps)
 
-            block_body = PushTEnv.add_tee(space, block_pos[i].tolist(), block_angle[i].item())
-            goal_geom = pymunk_to_shapely(goal_body, block_body.shapes)
-            block_geom = pymunk_to_shapely(block_body, block_body.shapes)
-            intersection_area = goal_geom.intersection(block_geom).area
-            goal_area = goal_geom.area
-            coverage = intersection_area / goal_area
-            reward[i] = np.clip(coverage / success_threshold, 0, 1)
-            success[i] = coverage > success_threshold
+                    # clean temporary images directory
+                    shutil.rmtree(tmp_imgs_dir)
 
-        # last step of demonstration is considered done
-        done[-1] = True
+                    # store the reference to the video frame
+                    ep_dict[img_key] = [
+                        {"path": f"videos/{fname}", "timestamp": i / fps}
+                        for i in range(num_frames)
+                    ]
+                else:
+                    ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
-        ep_dict = {}
-
-        imgs_array = [x.numpy() for x in image]
-        img_key = "observation.image"
-        if video:
-            # save png images in temporary directory
-            tmp_imgs_dir = videos_dir / "tmp_images"
-            save_images_concurrently(imgs_array, tmp_imgs_dir)
-
-            # encode images to a mp4 video
-            fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
-            video_path = videos_dir / fname
-            encode_video_frames(tmp_imgs_dir, video_path, fps)
-
-            # clean temporary images directory
-            shutil.rmtree(tmp_imgs_dir)
-
-            # store the reference to the video frame
-            ep_dict[img_key] = [{"path": f"videos/{fname}", "timestamp": i / fps} for i in range(num_frames)]
-        else:
-            ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
-
-        ep_dict["observation.state"] = agent_pos
-        ep_dict["action"] = actions[from_idx:to_idx]
-        ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames, dtype=torch.int64)
-        ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
-        ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
-        # ep_dict["next.observation.image"] = image[1:],
-        # ep_dict["next.observation.state"] = agent_pos[1:],
-        # TODO(rcadene)] = verify that reward and done are aligned with image and agent_pos
-        ep_dict["next.reward"] = torch.cat([reward[1:], reward[[-1]]])
-        ep_dict["next.done"] = torch.cat([done[1:], done[[-1]]])
-        ep_dict["next.success"] = torch.cat([success[1:], success[[-1]]])
-        ep_dicts.append(ep_dict)
+            ep_dicts.append(ep_dict)
+            pbar.update(1)
 
     data_dict = concatenate_episodes(ep_dicts)
 
@@ -191,13 +153,13 @@ def load_from_raw(raw_dir: Path, videos_dir: Path, fps: int, video: bool, episod
 def to_hf_dataset(data_dict, video):
     features = {}
 
-    if video:
-        features["observation.image"] = VideoFrame()
-    else:
-        features["observation.image"] = Image()
+    for key in data_dict.keys():
+        if "observation.image" in key:
+            features[key] = VideoFrame()
 
     features["observation.state"] = Sequence(
-        length=data_dict["observation.state"].shape[1], feature=Value(dtype="float32", id=None)
+        length=data_dict["observation.state"].shape[1],
+        feature=Value(dtype="float32", id=None),
     )
     features["action"] = Sequence(
         length=data_dict["action"].shape[1], feature=Value(dtype="float32", id=None)
@@ -205,9 +167,9 @@ def to_hf_dataset(data_dict, video):
     features["episode_index"] = Value(dtype="int64", id=None)
     features["frame_index"] = Value(dtype="int64", id=None)
     features["timestamp"] = Value(dtype="float32", id=None)
-    features["next.reward"] = Value(dtype="float32", id=None)
-    features["next.done"] = Value(dtype="bool", id=None)
-    features["next.success"] = Value(dtype="bool", id=None)
+    # features["next.reward"] = Value(dtype="float32", id=None)
+    # features["next.done"] = Value(dtype="bool", id=None)
+    # features["next.success"] = Value(dtype="bool", id=None)
     features["index"] = Value(dtype="int64", id=None)
 
     hf_dataset = Dataset.from_dict(data_dict, features=Features(features))
@@ -222,9 +184,6 @@ def from_raw_to_lerobot_format(
     video: bool = True,
     episodes: list[int] | None = None,
 ):
-    # sanity check
-    check_format(raw_dir)
-
     if fps is None:
         fps = 10
 

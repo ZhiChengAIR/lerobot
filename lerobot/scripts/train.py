@@ -239,6 +239,9 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
 
     init_logging()
 
+    if cfg.resume and not Logger.get_last_checkpoint_dir(out_dir).exists():
+        cfg.resume = False
+
     # If we are resuming a run, we need to check that a checkpoint exists in the log directory, and we need
     # to check for any differences between the provided config and the checkpoint's config.
     if cfg.resume:

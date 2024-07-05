@@ -7,9 +7,10 @@ hydra:
   run:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
-    dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
+    # dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
+    dir: outputs/train/${env.name}_${policy.name}/${hydra.job.name}_1
   job:
-    name: default
+    name: Clamp_red_box
 
 wandb:
   enable: true
@@ -28,7 +29,7 @@ dataset_repo_id: zcai/dataset_3d_v3_0626
 # `hydra.run.dir` is the directory of an existing run with at least one checkpoint in it.
 # Note that when resuming a run, the default behavior is to use the configuration from the checkpoint,
 # regardless of what's provided with the training command at the time of resumption.
-resume: false
+resume: true
 device: cuda  # cpu
 # `use_amp` determines whether to use Automatic Mixed Precision (AMP) for training and evaluation. With AMP,
 # automatic gradient scaling is used.
@@ -51,7 +52,7 @@ training:
   save_checkpoint: true
   # Checkpoint is saved every `save_freq` training iterations and after the last training step.
   save_freq: ???
-  num_workers: 4
+  num_workers: 8
   batch_size: ???
   image_transforms:
   # These transforms are all using standard torchvision.transforms.v2

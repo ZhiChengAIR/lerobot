@@ -18,6 +18,7 @@ import time
 from contextlib import nullcontext
 from pathlib import Path
 from pprint import pformat
+import signal
 
 import hydra
 import torch
@@ -44,6 +45,11 @@ from lerobot.common.utils.utils import (
     set_global_seed,
 )
 from lerobot.scripts.eval import eval_policy
+
+
+def worker_init_fn(worker_id):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    print(f"Worker {worker_id} ignoring signal: SIGINT")
 
 
 def make_optimizer_and_scheduler(cfg, policy):
@@ -427,6 +433,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
         sampler=sampler,
         pin_memory=device.type != "cpu",
         drop_last=False,
+        worker_init_fn=worker_init_fn,
     )
     dl_iter = cycle(dataloader)
 
@@ -470,9 +477,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     logging.info("End of training")
 
 
-@hydra.main(
-    version_base="1.2", config_name="zcai_singlearm_diffusion", config_path="../configs"
-)
+@hydra.main(version_base="1.2", config_name="aloha_act", config_path="../configs")
 def train_cli(cfg: dict):
     train(
         cfg,

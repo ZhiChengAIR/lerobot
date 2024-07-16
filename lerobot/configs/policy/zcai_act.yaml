@@ -15,28 +15,30 @@
 # ```
 
 seed: 1000
-dataset_repo_id: lerobot/aloha_static_vinh_cup
+dataset_repo_id: aloha2/pick_and_place_0715_2
 
 override_dataset_stats:
-  observation.images.cam_right_wrist:
+  # observation.images.cam_right_wrist:
+  #   # stats from imagenet, since we use a pretrained vision model
+  #   mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
+  #   std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
+  # observation.images.cam_left_wrist:
+  observation.images.camera_2:
     # stats from imagenet, since we use a pretrained vision model
     mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
     std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
-  observation.images.cam_left_wrist:
+  # observation.images.cam_high:
+  observation.images.camera_0:
     # stats from imagenet, since we use a pretrained vision model
     mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
     std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
-  observation.images.cam_high:
-    # stats from imagenet, since we use a pretrained vision model
-    mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
-    std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
-  observation.images.cam_low:
-    # stats from imagenet, since we use a pretrained vision model
-    mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
-    std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
+  # observation.images.cam_low:
+  #   # stats from imagenet, since we use a pretrained vision model
+  #   mean: [[[0.485]], [[0.456]], [[0.406]]]  # (c,1,1)
+  #   std: [[[0.229]], [[0.224]], [[0.225]]]  # (c,1,1)
 
 training:
-  offline_steps: 80000
+  offline_steps: 1000000
   online_steps: 0
   eval_freq: -1
   save_freq: 10000
@@ -68,20 +70,24 @@ policy:
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
-    observation.images.cam_right_wrist: [3, 480, 640]
-    observation.images.cam_left_wrist: [3, 480, 640]
-    observation.images.cam_high: [3, 480, 640]
-    observation.images.cam_low: [3, 480, 640]
+    # observation.images.cam_right_wrist: [3, 480, 640]
+    # observation.images.cam_left_wrist: [3, 480, 640]
+    # observation.images.cam_high: [3, 480, 640]
+    # observation.images.cam_low: [3, 480, 640]
+    observation.images.camera_2: [3, 480, 640]
+    observation.images.camera_0: [3, 480, 640]
     observation.state: ["${env.state_dim}"]
   output_shapes:
     action: ["${env.action_dim}"]
 
   # Normalization / Unnormalization
   input_normalization_modes:
-    observation.images.cam_right_wrist: mean_std
-    observation.images.cam_left_wrist: mean_std
-    observation.images.cam_high: mean_std
-    observation.images.cam_low: mean_std
+    # observation.images.cam_right_wrist: mean_std
+    # observation.images.cam_left_wrist: mean_std
+    # observation.images.cam_high: mean_std
+    # observation.images.cam_low: mean_std
+    observation.images.camera_2: mean_std
+    observation.images.camera_0: mean_std
     observation.state: mean_std
   output_normalization_modes:
     action: mean_std

@@ -286,7 +286,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
                 "takes precedence.",
             )
         # Use the checkpoint config instead of the provided config (but keep `resume` parameter).
-        cfg = checkpoint_cfg
+        # cfg = checkpoint_cfg
         cfg.resume = True
     elif Logger.get_last_checkpoint_dir(out_dir).exists():
         raise RuntimeError(
@@ -477,7 +477,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
     logging.info("End of training")
 
 
-@hydra.main(version_base="1.2", config_name="aloha_act", config_path="../configs")
+@hydra.main(version_base="1.2", config_name="zcai_aloha2_act", config_path="../configs")
 def train_cli(cfg: dict):
     train(
         cfg,

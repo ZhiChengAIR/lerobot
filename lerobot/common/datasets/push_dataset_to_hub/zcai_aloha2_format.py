@@ -81,7 +81,10 @@ def load_from_raw(
             ep_dict = {}
 
             origin_state = torch.tensor(
-                [item["arm_angles"] + [item["gripper_angle"]] for item in ep_raw_data],
+                [
+                    item["arm_angles"] + [item["gripper_percentage"]]
+                    for item in ep_raw_data
+                ],
                 dtype=torch.float32,
             )
             num_frames = origin_state.shape[0] - 1
@@ -94,9 +97,23 @@ def load_from_raw(
             ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
 
             # constract label "observation.image" for ep_dict and save video to video_dir
+            key = camera_names[0]
+            imgs_dir = raw_dir / episode_folder[ep_idx] / key
+            images_name = sorted(imgs_dir.glob("*.jpg"))[:-1]
+            if len(images_name) != num_frames:
+                print(
+                    f"{episode_folder[ep_idx]} contains {len(images_name)} images,but num_frames is {num_frames}"
+                )
+                continue
+
             for key in camera_names:
                 img_key = f"observation.images.{key}"
                 imgs_dir = raw_dir / episode_folder[ep_idx] / key
+                images_name = sorted(imgs_dir.glob("*.jpg"))[:-1]
+                assert (
+                    len(images_name) == num_frames
+                ), f"{episode_folder[ep_idx]}_{key} contains {len(images_name)} images,but num_frames is {num_frames}"
+
                 if video:
                     # encode images to a mp4 video
                     fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
@@ -109,7 +126,6 @@ def load_from_raw(
                         for i in range(num_frames)
                     ]
                 else:
-                    images_name = sorted(imgs_dir.glob("*.jpg"))[:-1]
                     ep_dict[img_key] = [
                         PILImage.open(imgs_dir / img) for img in images_name
                     ]

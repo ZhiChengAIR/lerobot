@@ -7,8 +7,8 @@ hydra:
   run:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
-    #  dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
-    dir: outputs/train/2024-07-15/18-40-09_dora_aloha2_act_aloha2_act
+    # dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}_${hydra.job.name}
+    dir: outputs/train/2024-07-16/17-08-01_dora_aloha2_act_aloha2_act
   job:
     name: aloha2_act
 
@@ -17,7 +17,7 @@ hydra:
 # Note that when resuming a run, the default behavior is to use the configuration from the checkpoint,
 # regardless of what's provided with the training command at the time of resumption.
 resume: True
-device: cuda  # cpu
+device: cuda # cpu
 # `use_amp` determines whether to use Automatic Mixed Precision (AMP) for training and evaluation. With AMP,
 # automatic gradient scaling is used.
 use_amp: false
@@ -28,7 +28,11 @@ seed: ???
 # keys common between the datasets are kept. Each dataset gets and additional transform that inserts the
 # "dataset_index" into the returned item. The index mapping is made according to the order in which the
 # datsets are provided.
-dataset_repo_id: [lerobot/aloha_sim_insertion_scripted_image,lerobot/aloha_sim_transfer_cube_human]
+dataset_repo_id:
+  [
+    lerobot/aloha_sim_insertion_scripted_image,
+    lerobot/aloha_sim_transfer_cube_human,
+  ]
 video_backend: pyav
 
 training:
@@ -47,16 +51,16 @@ training:
   num_workers: 4
   batch_size: ???
   image_transforms:
-  # These transforms are all using standard torchvision.transforms.v2
-  # You can find out how these transformations affect images here:
-  # https://pytorch.org/vision/0.18/auto_examples/transforms/plot_transforms_illustrations.html
-  # We use a custom RandomSubsetApply container to sample them.
-  # For each transform, the following parameters are available:
-  #   weight: This represents the multinomial probability (with no replacement)
-  #           used for sampling the transform. If the sum of the weights is not 1,
-  #           they will be normalized.
-  #   min_max: Lower & upper bound respectively used for sampling the transform's parameter
-  #           (following uniform distribution) when it's applied.
+    # These transforms are all using standard torchvision.transforms.v2
+    # You can find out how these transformations affect images here:
+    # https://pytorch.org/vision/0.18/auto_examples/transforms/plot_transforms_illustrations.html
+    # We use a custom RandomSubsetApply container to sample them.
+    # For each transform, the following parameters are available:
+    #   weight: This represents the multinomial probability (with no replacement)
+    #           used for sampling the transform. If the sum of the weights is not 1,
+    #           they will be normalized.
+    #   min_max: Lower & upper bound respectively used for sampling the transform's parameter
+    #           (following uniform distribution) when it's applied.
     # Set this flag to `true` to enable transforms during training
     enable: false
     # This is the maximum number of transforms (sampled from these below) that will be applied to each frame.

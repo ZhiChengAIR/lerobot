@@ -43,6 +43,45 @@ def encode_video_frames(imgs_dir: Path, video_path: Path, fps: int):
     os.remove(imgs_dir / "images.txt")
 
 
+def check_data_sync(ep_raw_data, imgs_dir: Path, fps):
+    ZCAI_SYNC_TIME_TOLERANCE = 2 / fps
+    imgs_timestamps = [
+        float(os.path.splitext(i)[0]) for i in sorted(os.listdir(imgs_dir))
+    ]
+    robot_timstamp = np.array([i["timestamp"] for i in ep_raw_data])
+
+    # 处理imgs_timestamps中可能存在的时间间隙过大
+    assert len(imgs_timestamps) > 2, "[SYNC] imgs_len <= 2"
+    if imgs_timestamps[1] - imgs_timestamps[0] > ZCAI_SYNC_TIME_TOLERANCE:
+        # imgs_timestamps.pop(0)
+        print("[SYNC] del first img")
+
+    new_imgs_time = []
+    new_imgs_time.append(imgs_timestamps[0])
+    for idx in range(1, len(imgs_timestamps)):
+        if imgs_timestamps[idx] - imgs_timestamps[idx - 1] > ZCAI_SYNC_TIME_TOLERANCE:
+            insert_num = np.floor(
+                (imgs_timestamps[idx] - imgs_timestamps[idx - 1]) * fps
+            )
+            print(
+                f"{imgs_dir}:idx {idx} the deltatime is larger than tolerance,and will insert {insert_num} imgs"
+            )
+
+        new_imgs_time.append(imgs_timestamps[idx])
+
+    new_robot_timstamp_idx = []
+    for idx, img_timestamp in enumerate(new_imgs_time):
+        delta_time = np.abs(img_timestamp - robot_timstamp)
+        min_idx = np.argmin(delta_time)
+        new_robot_timstamp_idx.append(min_idx)
+        if delta_time[min_idx] > ZCAI_SYNC_TIME_TOLERANCE:
+            print(
+                f"{imgs_dir}: idx {idx} corresponding img timestamp is over tolerance"
+            )
+
+    return new_robot_timstamp_idx
+
+
 def load_from_raw(
     raw_dir: Path,
     videos_dir: Path,
@@ -78,6 +117,10 @@ def load_from_raw(
                 raw_dir / episode_folder[ep_idx] / "robot_info.npy", allow_pickle=True
             )
 
+            key = camera_names[0]
+            imgs_dir = raw_dir / episode_folder[ep_idx] / key
+            robot_timstamp_idx = check_data_sync(ep_raw_data, imgs_dir, fps)
+            ep_raw_data = ep_raw_data[robot_timstamp_idx]
             ep_dict = {}
 
             origin_state = torch.tensor(

@@ -41,9 +41,14 @@ def log_output_dir(out_dir):
 
 def cfg_to_group(cfg: DictConfig, return_list: bool = False) -> list[str] | str:
     """Return a group name for logging. Optionally returns group name as list."""
+    if isinstance(cfg.dataset_repo_id, str):
+        dataset = cfg.dataset_repo_id
+    else:
+        dataset = "-".join(cfg.dataset_repo_id)
+
     lst = [
         f"policy:{cfg.policy.name}",
-        f"dataset:{cfg.dataset_repo_id}",
+        f"dataset:{dataset}",
         f"env:{cfg.env.name}",
         f"seed:{cfg.seed}",
     ]
@@ -83,7 +88,9 @@ class Logger:
     pretrained_model_dir_name = "pretrained_model"
     training_state_file_name = "training_state.pth"
 
-    def __init__(self, cfg: DictConfig, log_dir: str, wandb_job_name: str | None = None):
+    def __init__(
+        self, cfg: DictConfig, log_dir: str, wandb_job_name: str | None = None
+    ):
         """
         Args:
             log_dir: The directory to save all logs and training outputs to.
@@ -103,7 +110,9 @@ class Logger:
         enable_wandb = cfg.get("wandb", {}).get("enable", False)
         run_offline = not enable_wandb or not project
         if run_offline:
-            logging.info(colored("Logs will be saved locally.", "yellow", attrs=["bold"]))
+            logging.info(
+                colored("Logs will be saved locally.", "yellow", attrs=["bold"])
+            )
             self._wandb = None
         else:
             os.environ["WANDB_SILENT"] = "true"
@@ -129,7 +138,9 @@ class Logger:
                 resume="must" if cfg.resume else None,
             )
             print(colored("Logs will be synced with wandb.", "blue", attrs=["bold"]))
-            logging.info(f"Track this run --> {colored(wandb.run.get_url(), 'yellow', attrs=['bold'])}")
+            logging.info(
+                f"Track this run --> {colored(wandb.run.get_url(), 'yellow', attrs=['bold'])}"
+            )
             self._wandb = wandb
 
     @classmethod
@@ -150,7 +161,9 @@ class Logger:
         """
         return cls.get_last_checkpoint_dir(log_dir) / cls.pretrained_model_dir_name
 
-    def save_model(self, save_dir: Path, policy: Policy, wandb_artifact_name: str | None = None):
+    def save_model(
+        self, save_dir: Path, policy: Policy, wandb_artifact_name: str | None = None
+    ):
         """Save the weights of the Policy model using PyTorchModelHubMixin.
 
         The weights are saved in a folder called "pretrained_model" under the checkpoint directory.
@@ -205,17 +218,23 @@ class Logger:
             else f"{self._group.replace(':', '_').replace('/', '_')}-{self._cfg.seed}-{identifier}"
         )
         self.save_model(
-            checkpoint_dir / self.pretrained_model_dir_name, policy, wandb_artifact_name=wandb_artifact_name
+            checkpoint_dir / self.pretrained_model_dir_name,
+            policy,
+            wandb_artifact_name=wandb_artifact_name,
         )
         self.save_training_state(checkpoint_dir, train_step, optimizer, scheduler)
         os.symlink(checkpoint_dir.absolute(), self.last_checkpoint_dir)
 
-    def load_last_training_state(self, optimizer: Optimizer, scheduler: LRScheduler | None) -> int:
+    def load_last_training_state(
+        self, optimizer: Optimizer, scheduler: LRScheduler | None
+    ) -> int:
         """
         Given the last checkpoint in the logging directory, load the optimizer state, scheduler state, and
         random state, and return the global training step.
         """
-        training_state = torch.load(self.last_checkpoint_dir / self.training_state_file_name)
+        training_state = torch.load(
+            self.last_checkpoint_dir / self.training_state_file_name
+        )
         optimizer.load_state_dict(training_state["optimizer"])
         if scheduler is not None:
             scheduler.load_state_dict(training_state["scheduler"])
@@ -224,7 +243,9 @@ class Logger:
                 "The checkpoint contains a scheduler state_dict, but no LRScheduler was provided."
             )
         # Small hack to get the expected keys: use `get_global_random_state`.
-        set_global_random_state({k: training_state[k] for k in get_global_random_state()})
+        set_global_random_state(
+            {k: training_state[k] for k in get_global_random_state()}
+        )
         return training_state["step"]
 
     def log_dict(self, d, step, mode="train"):

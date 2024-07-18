@@ -118,7 +118,7 @@ def load_from_raw(
                 assert image.max() <= 255.0
                 image = image.type(torch.uint8)
                 imgs_array = [x.numpy() for x in image]
-                img_key = f"observation.image.{key}"
+                img_key = f"observation.images.{key}"
                 if video:
                     # save png images in temporary directory
                     tmp_imgs_dir = videos_dir / "tmp_images"
@@ -153,9 +153,14 @@ def load_from_raw(
 def to_hf_dataset(data_dict, video):
     features = {}
 
-    for key in data_dict.keys():
-        if "observation.image" in key:
-            features[key] = VideoFrame()
+    if video:
+        for key in data_dict.keys():
+            if "observation.images" in key:
+                features[key] = VideoFrame()
+    else:
+        for key in data_dict.keys():
+            if "observation.images" in key:
+                features[key] = Image()
 
     features["observation.state"] = Sequence(
         length=data_dict["observation.state"].shape[1],

@@ -3,7 +3,7 @@
 fps: 30
 
 env:
-  name: dora_aloha2
+  name: aloha2
   task: DoraAloha-v0
   state_dim: 7
   action_dim: 7

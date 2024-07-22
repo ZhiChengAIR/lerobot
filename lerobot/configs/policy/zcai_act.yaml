@@ -15,7 +15,7 @@
 # ```
 
 seed: 1000
-dataset_repo_id: [aloha2/pick_and_place_0715_2,aloha2/pick_and_place_0716]
+# dataset_repo_id: [aloha2/pick_and_place_0719]
 # dataset_repo_id: aloha2/pick_and_place_0715_2
 
 override_dataset_stats:

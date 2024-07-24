@@ -44,7 +44,7 @@ training:
   log_freq: 100
   save_checkpoint: true
 
-  batch_size: 8
+  batch_size: 32
   lr: 1e-5
   lr_backbone: 1e-5
   weight_decay: 1e-4
@@ -64,8 +64,8 @@ policy:
 
   # Input / output structure.
   n_obs_steps: 1
-  chunk_size: 100 # chunk_size
-  n_action_steps: 100
+  chunk_size: 30 # chunk_size
+  n_action_steps: 30
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?

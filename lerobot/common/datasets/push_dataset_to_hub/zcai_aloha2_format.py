@@ -82,6 +82,28 @@ def check_data_sync(ep_raw_data, imgs_dir: Path, fps):
     return new_robot_timstamp_idx
 
 
+def dataset_alignment(raw_dir: Path):
+    episode_folder = os.listdir(raw_dir)
+    num_episodes = len(episode_folder)
+    ep_ids = range(num_episodes)
+    items = os.listdir(raw_dir / episode_folder[0])
+    camera_names = [
+        item
+        for item in items
+        if os.path.isdir(os.path.join(raw_dir, episode_folder[0], item))
+    ]
+    for ep_idx, selected_ep_idx in enumerate(ep_ids):
+        ep_raw_data = np.load(
+            raw_dir / episode_folder[ep_idx] / "robot_info.npy", allow_pickle=True
+        )
+
+        imgs_dir = raw_dir / episode_folder[ep_idx] / camera_names[0]
+        imgs_timestamps = [
+            float(os.path.splitext(i)[0]) for i in sorted(os.listdir(imgs_dir))
+        ]
+        robot_timstamp = np.array([i["timestamp"] for i in ep_raw_data])
+
+
 def load_from_raw(
     raw_dir: Path,
     videos_dir: Path,
@@ -91,6 +113,8 @@ def load_from_raw(
 ):
     from numcodecs import register_codec
     from imagecodecs.numcodecs import Jpeg2k
+
+    # dataset_alignment(raw_dir)
 
     # 手动注册 JPEG 2000 编解码器
     register_codec(Jpeg2k)

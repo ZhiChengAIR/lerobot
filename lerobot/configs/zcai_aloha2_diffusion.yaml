@@ -8,7 +8,7 @@ hydra:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
     # dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}
-    dir: outputs/train/2024-07-21/10-48-51_aloha2_diffusion
+    dir: outputs/train/2024-07-21/10-48-51_aloha2_diffusionn
   job:
     name: aloha2_diffusion_1
 

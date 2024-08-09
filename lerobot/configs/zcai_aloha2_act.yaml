@@ -28,7 +28,7 @@ seed: ???
 # keys common between the datasets are kept. Each dataset gets and additional transform that inserts the
 # "dataset_index" into the returned item. The index mapping is made according to the order in which the
 # datsets are provided.
-dataset_repo_id: aloha2/pick_and_place_0719
+dataset_repo_id: aloha2/pick_and_place_0808_1
 video_backend: pyav
 
 training:

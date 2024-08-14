@@ -7,10 +7,10 @@ hydra:
   run:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
-    # dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}
-    dir: outputs/train/2024-07-21/10-48-51_aloha2_diffusionn
+    dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}
+    # dir: outputs/train/2024-07-21/10-48-51_aloha2_diffusionn
   job:
-    name: aloha2_diffusion_1
+    name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${env.name}_${policy.name}
 
 wandb:
   enable: true
@@ -23,14 +23,14 @@ wandb:
 # keys common between the datasets are kept. Each dataset gets and additional transform that inserts the
 # "dataset_index" into the returned item. The index mapping is made according to the order in which the
 # datsets are provided.
-dataset_repo_id: aloha2/pick_and_place_0719
+dataset_repo_id: aloha2/pick_and_place_0809_0
 
 # Set `resume` to true to resume a previous run. In order for this to work, you will need to make sure
 # `hydra.run.dir` is the directory of an existing run with at least one checkpoint in it.
 # Note that when resuming a run, the default behavior is to use the configuration from the checkpoint,
 # regardless of what's provided with the training command at the time of resumption.
 resume: true
-device: cuda  # cpu
+device: cuda # cpu
 # `use_amp` determines whether to use Automatic Mixed Precision (AMP) for training and evaluation. With AMP,
 # automatic gradient scaling is used.
 use_amp: false
@@ -55,16 +55,16 @@ training:
   num_workers: 8
   batch_size: ???
   image_transforms:
-  # These transforms are all using standard torchvision.transforms.v2
-  # You can find out how these transformations affect images here:
-  # https://pytorch.org/vision/0.18/auto_examples/transforms/plot_transforms_illustrations.html
-  # We use a custom RandomSubsetApply container to sample them.
-  # For each transform, the following parameters are available:
-  #   weight: This represents the multinomial probability (with no replacement)
-  #           used for sampling the transform. If the sum of the weights is not 1,
-  #           they will be normalized.
-  #   min_max: Lower & upper bound respectively used for sampling the transform's parameter
-  #           (following uniform distribution) when it's applied.
+    # These transforms are all using standard torchvision.transforms.v2
+    # You can find out how these transformations affect images here:
+    # https://pytorch.org/vision/0.18/auto_examples/transforms/plot_transforms_illustrations.html
+    # We use a custom RandomSubsetApply container to sample them.
+    # For each transform, the following parameters are available:
+    #   weight: This represents the multinomial probability (with no replacement)
+    #           used for sampling the transform. If the sum of the weights is not 1,
+    #           they will be normalized.
+    #   min_max: Lower & upper bound respectively used for sampling the transform's parameter
+    #           (following uniform distribution) when it's applied.
     # Set this flag to `true` to enable transforms during training
     enable: false
     # This is the maximum number of transforms (sampled from these below) that will be applied to each frame.
@@ -95,5 +95,3 @@ eval:
   batch_size: 1
   # `use_async_envs` specifies whether to use asynchronous environments (multiprocessing).
   use_async_envs: false
-
-

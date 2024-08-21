@@ -1,4 +1,5 @@
-dataset_repo_id: aloha2/pick_and_place_0809_0
+dataset_repo_id: aloha2/towel_0820_0
+device: cuda # cpu
 
 hydra:
   run:
@@ -26,7 +27,7 @@ defaults:
 # Note that when resuming a run, the default behavior is to use the configuration from the checkpoint,
 # regardless of what's provided with the training command at the time of resumption.
 resume: True
-device: cuda # cpu
+
 # `use_amp` determines whether to use Automatic Mixed Precision (AMP) for training and evaluation. With AMP,
 # automatic gradient scaling is used.
 use_amp: false

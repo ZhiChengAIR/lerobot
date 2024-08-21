@@ -15,7 +15,8 @@ timestamp=$(date +%Y-%m-%d_%H-%M-%S)
 logfile="${timestamp}_train.log"
 
 # 环境变量和命令
-command='DATA_DIR="/home/h666/code/dataset/hf_dataset/zcai" HYDRA_FULL_ERROR=1 gdb -ex r --args python ../lerobot/scripts/train.py'
+#command='DATA_DIR="/home/h666/code/dataset/hf_dataset/zcai" HYDRA_FULL_ERROR=1 gdb -ex r --args #python ../lerobot/scripts/train.py'
+command='DATA_DIR="/home/h666/code/dataset/hf_dataset/zcai"  python ../lerobot/scripts/train.py'
 
 # 使用nohup命令运行脚本并将输出重定向到日志文件
 nohup bash -c "$command" > "$logfile" 2>&1 &

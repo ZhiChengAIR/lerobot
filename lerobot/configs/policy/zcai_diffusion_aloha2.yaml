@@ -25,11 +25,11 @@ training:
   offline_steps: 1000000
   online_steps: 0
   eval_freq: -1
-  save_freq: 1000
+  save_freq: 2000
   log_freq: 250
   save_checkpoint: true
 
-  batch_size: 32
+  batch_size: 8
   grad_clip_norm: 10
   lr: 1.0e-4
   lr_scheduler: cosine

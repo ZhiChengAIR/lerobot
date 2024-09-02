@@ -1,12 +1,12 @@
-dataset_repo_id: aloha2/towel_0820_0
+dataset_repo_id: aloha2/stack_0821_0
 device: cuda # cpu
 
 hydra:
   run:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
-    dir: outputs/train/${now:%Y-%m-%d}/${now:%H-%M-%S}_${env.name}_${policy.name}
-    # dir: outputs/train/2024-08-09/18-45-02_aloha2_act
+    dir: outputs/train/${now:%Y-%m-%d}_${dataset_repo_id}/${now:%H-%M-%S}_${env.name}_${policy.name}
+    # dir: outputs/train/${dataset_repo_id}_2024-08-24/23-44-43_aloha2_act
   job:
     name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${env.name}_${policy.name}
 

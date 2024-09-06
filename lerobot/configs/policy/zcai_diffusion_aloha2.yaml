@@ -43,6 +43,7 @@ training:
     observation.images.cam_right_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.images.cam_left_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.images.cam_high: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    observation.images.cam_low: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
 
@@ -67,6 +68,7 @@ policy:
     observation.images.cam_right_wrist: [3, 480, 640]
     observation.images.cam_left_wrist: [3, 480, 640]
     observation.images.cam_high: [3, 480, 640]
+    observation.images.cam_low: [3, 480, 640]
     observation.state: ["${env.state_dim}"]
   output_shapes:
     action: ["${env.action_dim}"]
@@ -76,6 +78,7 @@ policy:
     observation.images.cam_right_wrist: mean_std
     observation.images.cam_left_wrist: mean_std
     observation.images.cam_high: mean_std
+    observation.images.cam_low: mean_std
     observation.state: min_max
   output_normalization_modes:
     action: min_max

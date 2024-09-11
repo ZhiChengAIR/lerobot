@@ -1,5 +1,4 @@
-dataset_repo_id: [aloha2/stack_0830_0, aloha2/stack_0905_0]
-# dataset_repo_id: aloha2/stack_0905_0
+dataset_repo_id: aloha2/stack_0905_0
 defaults:
   - _self_
   - env: zcai_aloha2
@@ -10,8 +9,7 @@ hydra:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
     dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
-    # dir: outputs/train/aloha2_stack_mix2/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
-    # dir: outputs/train/2024-08-18/12-47-36_aloha2_diffusion
+    # dir: # dir: outputs/train/aloha2/collect_dish_0910_0/aloha2_diffusion/2024-09-10_12-28-20
   job:
     name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${env.name}_${policy.name}
 

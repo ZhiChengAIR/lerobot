@@ -1,12 +1,13 @@
+[TOC]
 # 1. aloha2-3090服务器训练步骤
 ## 1.1. 数据集转换
 双臂遥操采集的数据格式是zcai_aloha2数据格式，需要转换为hf_dataset才能被lerobot框架利用训练。执行以下指令转换数据集。
 ```
 # 将zcai_aloha2采集的数据转化为hf_dataset,假设数据集文件夹为cloth_0909_0，一般将repo-id，raw-dir，local-dir修改为新数据集名字即可
 /home/h666/anaconda3/envs/lerobot/bin/python ~/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/scripts/push_dataset_to_hub.py \
---repo-id aloha2/collect_dish_0909_0 \
---raw-dir /home/h666/code/dataset/raw/collect_dish_0909_0 \
---local-dir /home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0909_1 \
+--repo-id aloha2/collect_dish_0910_0 \
+--raw-dir /home/h666/code/dataset/raw/collect_dish_0910_0 \
+--local-dir /home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0910_0 \
 --raw-format zcai_aloha2 \
 --push-to-hub 0 \
 --force-override 0 \
@@ -42,19 +43,20 @@ hydra:
     dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
     # dir: outputs/train/aloha2/collect_dish_0909_0/aloha2_act/2024-09-09_20-19-42
 ```
-### 1.2.2. 接续训练
-如果训练中断需要再次接续训练，需要更改以下配置
+### 1.2.2. 恢复训练配置
+如果训练中断需要再次恢复训练，需要更改以下配置.假设所选配置名字为zcai_aloha2_act,打开对应配置文件~/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/configs/zcai_aloha2_act.yaml修改以下配置
 ```
-# 将根据时间的dir配置注释掉，并将dir修改为你要接续训练的文件夹地址
+# 将根据时间的dir配置注释掉，并将dir修改为你要恢复训练的文件夹地址
 hydra:
   run:
     # dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
     dir: outputs/train/aloha2/collect_dish_0909_0/aloha2_act/2024-09-09_20-19-42
 ```
 ### 1.2.2. 启动训练
-执行以下脚本训练
+正确修改完配置后，执行以下脚本启动训练
 ```
-~/code/ZCAI-ROBOT/dependencies/lerobot/scripts/train_script.sh
+cd ~/code/ZCAI-ROBOT/dependencies/lerobot/scripts
+./train_script.sh
 ```
 # 2. 4090服务器训练步骤
 ## 2.1. 数据集转换
@@ -63,6 +65,7 @@ hydra:
 # ssh到4090后执行下面指令将aloha2-3090中转换后的数据集拷贝到4090服务器
 sudo cp -r ~/media/3090_aloah2/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0809_0/ ~/HUXIAN/dataset/hf_dataset/zcai/aloha2/
 ```
+## 2.2. 训练模型
 ### 2.2.1. 查看空闲cpu位置
 通过nvidia-smi查看空闲gpu位置.
 ```
@@ -101,19 +104,20 @@ hydra:
     # dir: outputs/train/aloha2/collect_dish_0909_0/aloha2_act/2024-09-09_20-19-42
 ```
 
-### 2.2.3. 接续训练
-如果训练中断需要再次接续训练，需要更改以下配置
+### 2.2.3. 恢复训练配置
+如果训练中断需要再次恢复训练，需要更改以下配置.假设所选配置名字为zcai_aloha2_act,打开对应配置文件~/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/configs/zcai_aloha2_act.yaml修改以下配置
 ```
-# 将根据时间的dir配置注释掉，并将dir修改为你要接续训练的文件夹地址
+# 将根据时间的dir配置注释掉，并将dir修改为你要恢复训练的文件夹地址
 hydra:
   run:
     # dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
     dir: outputs/train/aloha2/collect_dish_0909_0/aloha2_act/2024-09-09_20-19-42
 ```
 ### 2.2.2. 启动训练
-执行以下脚本训练
+正确修改完配置后，执行以下脚本启动训练
 ```
-~/HUXIAN/ZCAI-ROBOT/dependencies/lerobot/scripts/train_script.sh
+cd ~/code/ZCAI-ROBOT/dependencies/lerobot/scripts
+./train_script.sh
 ```
 # 3. 结束训练
 执行```nvidia-smi```得到以下结果

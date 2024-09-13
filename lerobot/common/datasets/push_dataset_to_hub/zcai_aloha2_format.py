@@ -27,6 +27,8 @@ import torch
 import tqdm
 from datasets import Dataset, Features, Image, Sequence, Value
 from PIL import Image as PILImage
+import glob
+import torchvision
 
 from lerobot.common.datasets.push_dataset_to_hub.utils import (
     concatenate_episodes,
@@ -39,23 +41,24 @@ from lerobot.common.datasets.utils import (
 from lerobot.common.datasets.video_utils import VideoFrame, encode_video_frames
 
 
-def get_cameras(hdf5_data):
-    # ignore depth channel, not currently handled
-    # TODO(rcadene): add depth
-    rgb_cameras = [
-        key for key in hdf5_data["/observations/images"].keys() if "depth" not in key
-    ]  # noqa: SIM118
-    return rgb_cameras
+def get_cameras(raw_dir):
+    f_dir = glob.glob(str(raw_dir/"episode_0_*.mp4"))
+    cam_name = [name.split(".")[0].split("episode_0_")[-1] for name in f_dir]
+    return cam_name
 
 
 def check_format(raw_dir) -> bool:
     # only frames from simulation are uncompressed
-    compressed_images = "sim" not in raw_dir.name
-    compressed_images = False
-
     hdf5_paths = list(raw_dir.glob("episode_*.hdf5"))
+    num_episodes = len(hdf5_paths)
     assert len(hdf5_paths) != 0
     for hdf5_path in hdf5_paths:
+        ep_id = 0
+        for i in range(num_episodes):
+            if f"episode_{i}" in str(hdf5_path):
+                ep_id = i
+                break
+        
         with h5py.File(hdf5_path, "r") as data:
             assert "/action" in data
             assert "/observations/qpos" in data
@@ -66,18 +69,21 @@ def check_format(raw_dir) -> bool:
             num_frames = data["/action"].shape[0]
             assert num_frames == data["/observations/qpos"].shape[0]
 
-            for camera in get_cameras(data):
-                assert num_frames == data[f"/observations/images/{camera}"].shape[0]
+            for camera in get_cameras(raw_dir):
+                imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_id}_{camera}.mp4"))
 
-                if compressed_images:
-                    assert data[f"/observations/images/{camera}"].ndim == 2
-                else:
-                    assert data[f"/observations/images/{camera}"].ndim == 4
-                    b, h, w, c = data[f"/observations/images/{camera}"].shape
-                    assert (
-                        c < h and c < w
-                    ), f"Expect (h,w,c) image format but ({h=},{w=},{c=}) provided."
+                assert imgs_array[0].ndim == 3
+                h, w, c = imgs_array[0].shape
+                assert (
+                    c < h and c < w
+                ), f"Expect (h,w,c) image format but ({h=},{w=},{c=}) provided."
 
+def get_imgs_from_video(video_path):
+    torchvision.set_video_backend("pyav")
+    reader = torchvision.io.VideoReader(video_path, "video")
+    imgs = list(reader)
+    imgs_array = [np.transpose(np.array(img["data"]),(1,2,0)) for img in imgs]
+    return imgs_array
 
 def load_from_raw(
     raw_dir: Path,
@@ -112,22 +118,9 @@ def load_from_raw(
                 effort = torch.from_numpy(ep["/observations/effort"][:])
 
             ep_dict = {}
-
-            for camera in get_cameras(ep):
+            for camera in get_cameras(raw_dir):
                 img_key = f"observation.images.{camera}"
-
-                if compressed_images:
-                    import cv2
-
-                    # load one compressed image after the other in RAM and uncompress
-                    imgs_array = []
-                    for data in ep[f"/observations/images/{camera}"]:
-                        imgs_array.append(cv2.imdecode(data, 1))
-                    imgs_array = np.array(imgs_array)
-
-                else:
-                    # load all images in RAM
-                    imgs_array = ep[f"/observations/images/{camera}"][:]
+                imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_idx}_{camera}.mp4"))
 
                 if video:
                     # save png images in temporary directory

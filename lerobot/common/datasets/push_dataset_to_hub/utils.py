@@ -45,6 +45,7 @@ def save_images_concurrently(imgs_array: numpy.array, out_dir: Path, max_workers
     out_dir.mkdir(parents=True, exist_ok=True)
 
     def save_image(img_array, i, out_dir):
+        # img_array = img_array[:,:,[2, 1, 0]]
         img = PIL.Image.fromarray(img_array)
         img.save(str(out_dir / f"frame_{i:06d}.png"), quality=100)
 

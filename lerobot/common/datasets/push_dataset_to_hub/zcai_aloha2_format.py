@@ -29,6 +29,7 @@ from datasets import Dataset, Features, Image, Sequence, Value
 from PIL import Image as PILImage
 import glob
 import torchvision
+import subprocess
 
 from lerobot.common.datasets.push_dataset_to_hub.utils import (
     concatenate_episodes,
@@ -70,13 +71,18 @@ def check_format(raw_dir) -> bool:
             assert num_frames == data["/observations/qpos"].shape[0]
 
             for camera in get_cameras(raw_dir):
-                imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_id}_{camera}.mp4"))
-
-                assert imgs_array[0].ndim == 3
-                h, w, c = imgs_array[0].shape
+                img_shape = get_info_from_video(str(raw_dir/f"episode_{ep_id}_{camera}.mp4"))
+                assert len(img_shape) == 3
+                c, h, w = img_shape
                 assert (
                     c < h and c < w
                 ), f"Expect (h,w,c) image format but ({h=},{w=},{c=}) provided."
+
+def get_info_from_video(video_path):
+    torchvision.set_video_backend("pyav")
+    reader = torchvision.io.VideoReader(video_path, "video")
+    img = next(reader)
+    return img["data"].shape
 
 def get_imgs_from_video(video_path):
     torchvision.set_video_backend("pyav")
@@ -120,20 +126,31 @@ def load_from_raw(
             ep_dict = {}
             for camera in get_cameras(raw_dir):
                 img_key = f"observation.images.{camera}"
-                imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_idx}_{camera}.mp4"))
 
                 if video:
                     # save png images in temporary directory
                     tmp_imgs_dir = videos_dir / "tmp_images"
-                    save_images_concurrently(imgs_array, tmp_imgs_dir)
+                    # save_images_concurrently(imgs_array, tmp_imgs_dir)
 
                     # encode images to a mp4 video
                     fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
                     video_path = videos_dir / fname
-                    encode_video_frames(tmp_imgs_dir, video_path, fps)
+                    # encode_video_frames(tmp_imgs_dir, video_path, fps)
+                    video_path.parent.mkdir(parents=True, exist_ok=True)
+                    ffmpeg_cmd = (
+                        f"ffmpeg -r {fps} "
+                        "-loglevel error "
+                        f"-i {str(raw_dir/f'episode_{ep_idx}_{camera}.mp4')} "
+                        "-vcodec libx264 "
+                        "-g 2 "
+                        "-pix_fmt yuv444p "
+                        f"{str(video_path)}"
+                        )
+                    subprocess.run(ffmpeg_cmd.split(" "), check=True)
+                    
 
                     # clean temporary images directory
-                    shutil.rmtree(tmp_imgs_dir)
+                    # shutil.rmtree(tmp_imgs_dir)
 
                     # store the reference to the video frame
                     ep_dict[img_key] = [
@@ -141,6 +158,7 @@ def load_from_raw(
                         for i in range(num_frames)
                     ]
                 else:
+                    imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_idx}_{camera}.mp4"))
                     ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
             ep_dict["observation.state"] = state

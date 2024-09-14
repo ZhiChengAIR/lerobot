@@ -30,6 +30,7 @@ from PIL import Image as PILImage
 import glob
 import torchvision
 import subprocess
+ZCAI_DATASET_VERSION = "2.0"
 
 from lerobot.common.datasets.push_dataset_to_hub.utils import (
     concatenate_episodes,
@@ -110,6 +111,10 @@ def load_from_raw(
     for ep_idx in tqdm.tqdm(ep_ids):
         ep_path = hdf5_files[ep_idx]
         with h5py.File(ep_path, "r") as ep:
+            v = ep.attrs["version"]
+            assert v == "2.0",f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
+            f_fps = ep.attrs["fps"]
+            assert f_fps == fps,f"fps {fps} is not equal to fps in HDF5 {f_fps}"
             num_frames = ep["/action"].shape[0]
 
             # last step of demonstration is considered done

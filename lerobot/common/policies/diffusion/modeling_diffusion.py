@@ -165,19 +165,19 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if len(self._queues["action"]) == 0:
+        if len(self._queues["action"]) <= 8:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
-            actions = self.diffusion.generate_actions(batch)
+            actions = self.diffusion.generate_actions1(batch)
 
             # TODO(rcadene): make above methods return output dictionary?
             actions = self.unnormalize_outputs({"action": actions})["action"]
 
-            # self._queues["action"].clear()
+            self._queues["action"].clear()
             self._queues["action"].extend(actions.transpose(0, 1))
 
         action = self._queues["action"].popleft()
-        return action,[]
+        return action,self._queues["action"]
 
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
         """Run the batch through the model and compute the loss for training or validation."""
@@ -318,7 +318,7 @@ class DiffusionModel(nn.Module):
         actions = self.conditional_sample(batch_size, global_cond=global_cond)
 
         # Extract `n_action_steps` steps worth of actions (from the current observation).
-        start = n_obs_steps + 2
+        start = n_obs_steps -1
         # end = start + self.config.n_action_steps
         actions = actions[:, start:]
 

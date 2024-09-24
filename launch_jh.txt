@@ -1,0 +1,4 @@
+09-23-2024
+HYDRA_FULL_ERROR=1 DATA_DIR=/home/h666/code/dataset/hf_dataset/zcai python train.py \
+policy=zcai_dp_aloha2 \
+env=zcai_aloha2

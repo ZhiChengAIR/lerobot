@@ -122,11 +122,12 @@ def load_from_raw(
             done[-1] = True
 
             state = torch.from_numpy(ep["/observations/qpos"][:])
+            qtor = torch.from_numpy(ep["/observations/qtor"][:])
+            qvel = torch.from_numpy(ep["/observations/qvel"][:])
+            qacc = torch.from_numpy(ep["/observations/qacc"][:])
+            tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
+            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
             action = torch.from_numpy(ep["/action"][:])
-            if "/observations/qvel" in ep:
-                velocity = torch.from_numpy(ep["/observations/qvel"][:])
-            if "/observations/effort" in ep:
-                effort = torch.from_numpy(ep["/observations/effort"][:])
 
             ep_dict = {}
             for camera in get_cameras(raw_dir):
@@ -167,10 +168,11 @@ def load_from_raw(
                     ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
             ep_dict["observation.state"] = state
-            if "/observations/velocity" in ep:
-                ep_dict["observation.velocity"] = velocity
-            if "/observations/effort" in ep:
-                ep_dict["observation.effort"] = effort
+            ep_dict["observation.qtor"] = qtor
+            ep_dict["observation.qvel"] = qvel
+            ep_dict["observation.qacc"] = qacc
+            ep_dict["observation.tcppose"] = tcppose
+            ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
             ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
             ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
@@ -204,16 +206,27 @@ def to_hf_dataset(data_dict, video) -> Dataset:
         length=data_dict["observation.state"].shape[1],
         feature=Value(dtype="float32", id=None),
     )
-    if "observation.velocity" in data_dict:
-        features["observation.velocity"] = Sequence(
-            length=data_dict["observation.velocity"].shape[1],
-            feature=Value(dtype="float32", id=None),
-        )
-    if "observation.effort" in data_dict:
-        features["observation.effort"] = Sequence(
-            length=data_dict["observation.effort"].shape[1],
-            feature=Value(dtype="float32", id=None),
-        )
+    features["observation.qtor"] = Sequence(
+        length=data_dict["observation.qtor"].shape[1],
+        feature=Value(dtype="float32", id=None),
+    )
+    features["observation.qvel"] = Sequence(
+        length=data_dict["observation.qvel"].shape[1],
+        feature=Value(dtype="float32", id=None),
+    )
+    features["observation.qacc"] = Sequence(
+        length=data_dict["observation.qacc"].shape[1],
+        feature=Value(dtype="float32", id=None),
+    )
+    features["observation.tcppose"] = Sequence(
+        length=data_dict["observation.tcppose"].shape[1],
+        feature=Value(dtype="float32", id=None),
+    )
+    features["observation.tcpvel"] = Sequence(
+        length=data_dict["observation.tcpvel"].shape[1],
+        feature=Value(dtype="float32", id=None),
+    )
+
     features["action"] = Sequence(
         length=data_dict["action"].shape[1], feature=Value(dtype="float32", id=None)
     )

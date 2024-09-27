@@ -1,4 +1,4 @@
-dataset_repo_id: aloha2/collect_dish_0910_0
+dataset_repo_id: aloha2/stack_0927_0
 device: cuda # cpu
 
 hydra:

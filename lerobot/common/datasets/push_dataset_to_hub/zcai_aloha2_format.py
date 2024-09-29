@@ -112,7 +112,7 @@ def load_from_raw(
         ep_path = hdf5_files[ep_idx]
         with h5py.File(ep_path, "r") as ep:
             v = ep.attrs["version"]
-            assert v == "2.0",f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
+            assert v == "3.0",f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
             f_fps = ep.attrs["fps"]
             assert f_fps == fps,f"fps {fps} is not equal to fps in HDF5 {f_fps}"
             num_frames = ep["/action"].shape[0]
@@ -128,6 +128,7 @@ def load_from_raw(
             tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
             tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
             action = torch.from_numpy(ep["/action"][:])
+            action_tcp = torch.from_numpy(ep["/action_tcp"][:])
 
             ep_dict = {}
             for camera in get_cameras(raw_dir):
@@ -174,6 +175,7 @@ def load_from_raw(
             ep_dict["observation.tcppose"] = tcppose
             ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
+            ep_dict["action_tcp"] = action_tcp
             ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
             ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
             ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
@@ -229,6 +231,9 @@ def to_hf_dataset(data_dict, video) -> Dataset:
 
     features["action"] = Sequence(
         length=data_dict["action"].shape[1], feature=Value(dtype="float32", id=None)
+    )
+    features["action_tcp"] = Sequence(
+        length=data_dict["action_tcp"].shape[1], feature=Value(dtype="float32", id=None)
     )
     features["episode_index"] = Value(dtype="int64", id=None)
     features["frame_index"] = Value(dtype="int64", id=None)

@@ -59,7 +59,14 @@ def get_policy_and_config_classes(name: str) -> tuple[Policy, object]:
     elif name == "dp_jh":
         from lerobot.common.policies.dp_jh.configuration_diffusion import DiffusionConfig
         from lerobot.common.policies.dp_jh.modeling_diffusion import DiffusionPolicy
-
+        return DiffusionPolicy, DiffusionConfig
+    elif name == "dp_jh_tcp":
+        from lerobot.common.policies.dp_jh_tcp.configuration_diffusion import DiffusionConfig
+        from lerobot.common.policies.dp_jh_tcp.modeling_diffusion import DiffusionPolicy
+        return DiffusionPolicy, DiffusionConfig
+    elif name == "dp":
+        from lerobot.common.policies.dp.configuration_diffusion import DiffusionConfig
+        from lerobot.common.policies.dp.modeling_diffusion import DiffusionPolicy
         return DiffusionPolicy, DiffusionConfig
     elif name == "act":
         from lerobot.common.policies.act.configuration_act import ACTConfig

@@ -117,20 +117,14 @@ class ACTPolicy(nn.Module, PyTorchModelHubMixin):
                 self._ensembled_actions = torch.cat([self._ensembled_actions, actions[:, -1:]], dim=1)
             # "Consume" the first action.
             action, self._ensembled_actions = self._ensembled_actions[:, 0], self._ensembled_actions[:, 1:]
-            return action, self._ensembled_actions[0]
 
-        # Action queue logic for n_action_steps > 1. When the action_queue is depleted, populate it by
-        # querying the policy.
-        if len(self._action_queue) <= 2:
-            actions = self.model(batch)[0][:, : self.config.n_action_steps+1]
-
-            # TODO(rcadene): make _forward return output dictionary?
+        else:
+            actions = self.model(batch)[0]  # (batch_size, chunk_size, action_dim)
             actions = self.unnormalize_outputs({"action": actions})["action"]
+            self._ensembled_actions = actions.clone()
+            action, self._ensembled_actions = self._ensembled_actions[:, 0], self._ensembled_actions[:, 1:]
 
-            # `self.model.forward` returns a (batch_size, n_action_steps, action_dim) tensor, but the queue
-            # effectively has shape (n_action_steps, batch_size, *), hence the transpose.
-            self._action_queue.extend(actions.transpose(0, 1))
-        return self._action_queue.popleft(),self._action_queue
+        return action, self._ensembled_actions[0]
 
     @torch.no_grad
     def select_action(self, batch: dict[str, Tensor]) -> Tensor:

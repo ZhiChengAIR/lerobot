@@ -18,7 +18,7 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from huggingface_hub import PyTorchModelHubMixin
 from torch import Tensor, nn
 
-from lerobot.common.policies.dp_jh.configuration_diffusion import DiffusionConfig
+from lerobot.common.policies.dp_jh_tcp.configuration_diffusion import DiffusionConfig
 from lerobot.common.policies.normalize import Normalize, Unnormalize
 from lerobot.common.policies.utils import (
     get_device_from_parameters,
@@ -123,8 +123,9 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         self._queues = {
             "observation.images": deque(maxlen=self.config.n_obs_steps),
             # "observation.state": deque(maxlen=self.config.n_obs_steps),
-            "action_tcp": deque(maxlen=self.config.n_obs_steps),
-            "action": deque(maxlen=self.config.n_action_steps),
+            "observation.tcppose": deque(maxlen=self.config.n_obs_steps),
+            "action_tcp": deque(maxlen=self.config.n_action_steps),
+            # "action": deque(maxlen=self.config.n_action_steps),
         }
     #------------------------------------------------------------#
 
@@ -155,17 +156,17 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         # Note: It's important that this happens after stacking the images into a single key.
         self._queues = populate_queues(self._queues, batch)
 
-        if len(self._queues["action"]) == 0:
+        if len(self._queues["action_tcp"]) == 0:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions(batch)
 
             # TODO(rcadene): make above methods return output dictionary?
-            actions = self.unnormalize_outputs({"action": actions})["action"]
+            actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
 
-            self._queues["action"].extend(actions.transpose(0, 1))
+            self._queues["action_tcp"].extend(actions.transpose(0, 1))
 
-        action = self._queues["action"].popleft()
+        action = self._queues["action_tcp"].popleft()
         return action
 
     @torch.no_grad
@@ -199,19 +200,19 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if len(self._queues["action"]) < updata_len:
+        if len(self._queues["action_tcp"]) < updata_len:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions1(batch)
 
             # TODO(rcadene): make above methods return output dictionary?
-            actions = self.unnormalize_outputs({"action": actions})["action"]
+            actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
 
-            self._queues["action"].clear()
-            self._queues["action"].extend(actions.transpose(0, 1))
+            self._queues["action_tcp"].clear()
+            self._queues["action_tcp"].extend(actions.transpose(0, 1))
 
-        action = self._queues["action"].popleft()
-        return action,self._queues["action"]
+        action = self._queues["action_tcp"].popleft()
+        return action,self._queues["action_tcp"]
 
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
         """Run the batch through the model and compute the loss for training or validation."""
@@ -264,7 +265,8 @@ class DiffusionModel(nn.Module):
         #------------------------------------------------------------#
         # changed by jh
         # global_cond_dim = (config.input_shapes["observation.state"][0] + self.rgb_encoder.feature_dim * num_images) * config.n_obs_steps
-        global_cond_dim = (config.input_shapes["action_tcp"][0] + self.rgb_encoder.feature_dim * num_images) * config.n_obs_steps
+        print('config.input_shapes:',config.input_shapes)
+        global_cond_dim = (config.input_shapes["observation.tcppose"][0] + self.rgb_encoder.feature_dim * num_images) * config.n_obs_steps
 
         if config.model_type == 'unet':
             self.model = DiffusionConditionalUnet1d(
@@ -319,7 +321,7 @@ class DiffusionModel(nn.Module):
 
         # Sample prior.
         sample = torch.randn(
-            size=(batch_size, self.config.horizon, self.config.output_shapes["action"][0]),
+            size=(batch_size, self.config.horizon, self.config.output_shapes["action_tcp"][0]),
             dtype=dtype,
             device=device,
             generator=generator,
@@ -342,7 +344,7 @@ class DiffusionModel(nn.Module):
     def _prepare_global_conditioning(self, batch: dict[str, Tensor]) -> Tensor:
         """Encode image features and concatenate them all together along with the state vector."""
         # batch_size, n_obs_steps = batch["observation.state"].shape[:2]
-        batch_size, n_obs_steps = batch["action_tcp"].shape[:2]
+        batch_size, n_obs_steps = batch["observation.tcppose"].shape[:2]
         # Extract image feature (first combine batch, sequence, and camera index dims).
         img_features = self.rgb_encoder(
             einops.rearrange(batch["observation.images"], "b s n ... -> (b s n) ...")
@@ -354,7 +356,7 @@ class DiffusionModel(nn.Module):
         )
         # Concatenate state and image features then flatten to (B, global_cond_dim).
         # return torch.cat([batch["observation.state"], img_features], dim=-1).flatten(start_dim=1)
-        return torch.cat([batch["action_tcp"], img_features], dim=-1).flatten(start_dim=1)
+        return torch.cat([batch["observation.tcppose"], img_features], dim=-1).flatten(start_dim=1)
 
     def generate_actions(self, batch: dict[str, Tensor]) -> Tensor:
         """
@@ -365,7 +367,7 @@ class DiffusionModel(nn.Module):
         }
         """
         # batch_size, n_obs_steps = batch["observation.state"].shape[:2]
-        batch_size, n_obs_steps = batch["action_tcp"].shape[:2]
+        batch_size, n_obs_steps = batch["observation.tcppose"].shape[:2]
         assert n_obs_steps == self.config.n_obs_steps
 
         # Encode image features and concatenate them all together along with the state vector.
@@ -390,7 +392,7 @@ class DiffusionModel(nn.Module):
         }
         """
         # batch_size, n_obs_steps = batch["observation.state"].shape[:2]
-        batch_size, n_obs_steps = batch["action_tcp"].shape[:2]
+        batch_size, n_obs_steps = batch["observation.tcppose"].shape[:2]
         assert n_obs_steps == self.config.n_obs_steps
 
         # Encode image features and concatenate them all together along with the state vector.
@@ -418,10 +420,10 @@ class DiffusionModel(nn.Module):
         """
         # Input validation.
         # assert set(batch).issuperset({"observation.state", "observation.images", "action", "action_is_pad"})
-        assert set(batch).issuperset({"action_tcp", "observation.images", "action", "action_is_pad"})
+        assert set(batch).issuperset({"observation.tcppose", "observation.images", "action_tcp", "action_tcp_is_pad"})
         # n_obs_steps = batch["observation.state"].shape[1]
-        n_obs_steps = batch["action_tcp"].shape[1]
-        horizon = batch["action"].shape[1]
+        n_obs_steps = batch["observation.tcppose"].shape[1]
+        horizon = batch["action_tcp"].shape[1]
         assert horizon == self.config.horizon
         assert n_obs_steps == self.config.n_obs_steps
 
@@ -429,7 +431,7 @@ class DiffusionModel(nn.Module):
         global_cond = self._prepare_global_conditioning(batch)  # (B, global_cond_dim)
 
         # Forward diffusion.
-        trajectory = batch["action"]
+        trajectory = batch["action_tcp"]
         # Sample noise to add to the trajectory.
         eps = torch.randn(trajectory.shape, device=trajectory.device)
         # Sample a random noising timestep for each item in the batch.
@@ -450,7 +452,7 @@ class DiffusionModel(nn.Module):
         if self.config.prediction_type == "epsilon":
             target = eps
         elif self.config.prediction_type == "sample":
-            target = batch["action"]
+            target = batch["action_tcp"]
         else:
             raise ValueError(f"Unsupported prediction type {self.config.prediction_type}")
 
@@ -460,10 +462,10 @@ class DiffusionModel(nn.Module):
         if self.config.do_mask_loss_for_padding:
             if "action_is_pad" not in batch:
                 raise ValueError(
-                    "You need to provide 'action_is_pad' in the batch when "
+                    "You need to provide 'action_tcp_is_pad' in the batch when "
                     f"{self.config.do_mask_loss_for_padding=}."
                 )
-            in_episode_bound = ~batch["action_is_pad"]
+            in_episode_bound = ~batch["action_tcp_is_pad"]
             loss = loss * in_episode_bound.unsqueeze(-1)
 
         return loss.mean()
@@ -822,7 +824,7 @@ class DiffusionConditionalUnet1d(nn.Module):
 
         # In channels / out channels for each downsampling block in the Unet's encoder. For the decoder, we
         # just reverse these.
-        in_out = [(config.output_shapes["action"][0], config.down_dims[0])] + list(
+        in_out = [(config.output_shapes["action_tcp"][0], config.down_dims[0])] + list(
             zip(config.down_dims[:-1], config.down_dims[1:], strict=True)
         )
 
@@ -877,7 +879,7 @@ class DiffusionConditionalUnet1d(nn.Module):
 
         self.final_conv = nn.Sequential(
             DiffusionConv1dBlock(config.down_dims[0], config.down_dims[0], kernel_size=config.kernel_size),
-            nn.Conv1d(config.down_dims[0], config.output_shapes["action"][0], 1),
+            nn.Conv1d(config.down_dims[0], config.output_shapes["action_tcp"][0], 1),
         )
 
     def forward(self, x: Tensor, timestep: Tensor | int, global_cond=None) -> Tensor:
@@ -1003,8 +1005,8 @@ class DiffusionTransformer(nn.Module):
         # Initialize model parameters from config
         self.horizon = config.horizon
         self.n_obs_steps = config.n_obs_steps
-        self.input_dim = config.output_shapes["action"][0]
-        self.output_dim = config.output_shapes["action"][0]
+        self.input_dim = config.input_shapes["observation.tcppose"][0]
+        self.output_dim = config.output_shapes["action_tcp"][0]
         self.cond_dim = global_cond_dim
 
         # Transformer parameters from config

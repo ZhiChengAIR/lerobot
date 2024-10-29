@@ -45,8 +45,9 @@ training:
     observation.images.cam_high: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.images.cam_low: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     # observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
-    action_tcp: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
-    action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
+    # action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
+    observation.tcppose: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    action_tcp: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
 
   # The original implementation doesn't sample frames for the last 7 steps,
   # which avoids excessive padding and leads to improved training results.
@@ -71,9 +72,9 @@ policy:
     observation.images.cam_high: [3, 480, 640]
     observation.images.cam_low: [3, 480, 640]
     # observation.state: ["${env.state_dim}"]
-    action_tcp: ["${env.state_dim}"]
+    observation.tcppose: ["${env.state_dim}"]
   output_shapes:
-    action: ["${env.action_dim}"]
+    action_tcp: ["${env.action_dim}"]
 
   # Normalization / Unnormalization
   input_normalization_modes:
@@ -82,9 +83,9 @@ policy:
     observation.images.cam_high: mean_std
     observation.images.cam_low: mean_std
     # observation.state: min_max
-    action_tcp: min_max
+    observation.tcppose: min_max
   output_normalization_modes:
-    action: min_max
+    action_tcp: min_max
 
   # Architecture / modeling.
   # Vision backbone.

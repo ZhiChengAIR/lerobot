@@ -105,12 +105,12 @@ class DiffusionConfig:
         default_factory=lambda: {
             "observation.images": [3, 96, 96],
             # "observation.state": [2],
-            "action_tcp": [6],
+            "observation.tcppose": [14],
         }
     )
     output_shapes: dict[str, list[int]] = field(
         default_factory=lambda: {
-            "action": [2],
+           "action_tcp": [14],
         }
     )
 
@@ -119,12 +119,12 @@ class DiffusionConfig:
         default_factory=lambda: {
             "observation.images": "mean_std",
             # "observation.state": "min_max",
-            "action_tcp": "min_max",
+            "observation.tcppose": "min_max",
         }
     )
     #--------------------------------------------------#
     
-    output_normalization_modes: dict[str, str] = field(default_factory=lambda: {"action": "min_max"})
+    output_normalization_modes: dict[str, str] = field(default_factory=lambda: {"action_tcp": "min_max"})
 
     # Architecture / modeling.
     # Vision backbone.

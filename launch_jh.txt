@@ -5,7 +5,7 @@ env=zcai_aloha2 \
 hydra.run.dir=/home/h666/code/ZCAI-ROBOT/dependencies/lerobot/outputs/train/test
 
 10-15-2024
-HYDRA_FULL_ERROR=1 DATA_DIR=/home/h666/code/dataset/hf_dataset/zcai python train.py \
+HYDRA_FULL_ERROR=1 DATA_DIR=/home/h666/code/dataset/hf_dataset/zcai python /home/h666/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/scripts/train.py \
 policy=zcai_dp_tcp_aloha2 \
 env=zcai_aloha2 \
 hydra.run.dir=/home/h666/code/ZCAI-ROBOT/dependencies/lerobot/outputs/train/test \

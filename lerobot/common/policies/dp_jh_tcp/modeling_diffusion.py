@@ -200,7 +200,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if len(self._queues["action_tcp"]) < updata_len:
+        if len(self._queues["action_tcp"]) < 8:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions1(batch)

@@ -52,7 +52,7 @@
 
 ### 1.2.1. 初次训练配置
 
-确认一下文件`~/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/scripts/train.py`第 481 行是否为正确的配置名字。目前配置名字可选项有`zcai_aloha2_act，zcai_aloha2_diffusion`。
+确认一下文件`~/code/ZCAI-ROBOT/dependencies/lerobot/lerobot/scripts/train.py`第 517 行是否为正确的配置名字。目前配置名字可选项有`zcai_aloha2_act，zcai_aloha2_dp_joints,zcai_aloha2_dp_tcp`。
 
 ```
 @hydra.main(

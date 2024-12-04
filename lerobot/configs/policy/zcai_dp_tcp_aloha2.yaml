@@ -67,10 +67,10 @@ policy:
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
-    observation.images.cam_right_wrist: [3, 480, 640]
-    observation.images.cam_left_wrist: [3, 480, 640]
-    observation.images.cam_high: [3, 480, 640]
-    observation.images.cam_low: [3, 480, 640]
+    observation.images.cam_right_wrist: [3, 240, 320]
+    observation.images.cam_left_wrist: [3,240, 320]
+    observation.images.cam_high: [3, 240, 320]
+    observation.images.cam_low: [3, 240, 320]
     # observation.state: ["${env.state_dim}"]
     observation.tcppose: ["${env.state_dim}"]
   output_shapes:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 加载 conda 初始化脚本
-source ~/anaconda3/etc/profile.d/conda.sh
+source ~/miniforge3/etc/profile.d/conda.sh
 
 # 激活指定的 conda 环境
 conda activate lerobot

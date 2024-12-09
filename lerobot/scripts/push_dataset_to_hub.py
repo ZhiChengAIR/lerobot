@@ -236,7 +236,10 @@ def push_dataset_to_hub(
         videos_dir=videos_dir,
     )
     if referenced_stats_repo_id == None:
-        stats = compute_stats(lerobot_dataset, batch_size, num_workers)
+        maxnum = 20000
+        if len(lerobot_dataset) < maxnum:
+            maxnum = len(lerobot_dataset)
+        stats = compute_stats(lerobot_dataset, batch_size, num_workers, maxnum)
     else:
 
         stats = load_stats(

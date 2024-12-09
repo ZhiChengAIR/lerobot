@@ -55,7 +55,7 @@ from safetensors.torch import save_file
 
 from lerobot.common.datasets.compute_stats import compute_stats
 from lerobot.common.datasets.lerobot_dataset import CODEBASE_VERSION, LeRobotDataset
-from lerobot.common.datasets.utils import flatten_dict
+from lerobot.common.datasets.utils import flatten_dict, load_stats
 
 
 def get_from_raw_to_lerobot_format_fn(raw_format: str):
@@ -173,6 +173,7 @@ def push_dataset_to_hub(
     force_override: bool = False,
     cache_dir: Path = Path("/tmp"),
     tests_data_dir: Path | None = None,
+    referenced_stats_repo_id: str | None = None,
 ):
     # Check repo_id is well formated
     if len(repo_id.split("/")) != 2:
@@ -234,7 +235,15 @@ def push_dataset_to_hub(
         info=info,
         videos_dir=videos_dir,
     )
-    stats = compute_stats(lerobot_dataset, batch_size, num_workers)
+    if referenced_stats_repo_id == None:
+        stats = compute_stats(lerobot_dataset, batch_size, num_workers)
+    else:
+
+        stats = load_stats(
+            referenced_stats_repo_id,
+            CODEBASE_VERSION,
+            local_dir.parent.parent,
+        )
 
     if local_dir:
         hf_dataset = hf_dataset.with_format(
@@ -353,6 +362,11 @@ def main():
         "--tests-data-dir",
         type=Path,
         help="When provided, save tests artifacts into the given directory for (e.g. `--tests-data-dir tests/data/lerobot/pusht`).",
+    )
+    parser.add_argument(
+        "--referenced_stats_repo_id",
+        type=Path,
+        help="When provided, use this repo_id's old stats directly.",
     )
 
     args = parser.parse_args()

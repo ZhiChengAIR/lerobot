@@ -96,7 +96,7 @@ def get_imgs_from_video(video_path):
     imgs = list(reader)
     resize = torchvision.transforms.Resize((240, 320))
     imgs_array = [
-        np.transpose(np.array(resize(img)["data"]), (1, 2, 0)) for img in imgs
+        np.transpose(np.array(resize(img["data"])), (1, 2, 0)) for img in imgs
     ]
     return imgs_array
 

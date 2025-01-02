@@ -127,6 +127,9 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
             "action_tcp": deque(maxlen=self.config.n_action_steps),
             # "action": deque(maxlen=self.config.n_action_steps),
         }
+
+
+        self._ensembled_actions = None
     #------------------------------------------------------------#
 
     @torch.no_grad
@@ -200,16 +203,40 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if len(self._queues["action_tcp"]) < 8:
+        if False:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions1(batch)
 
             # TODO(rcadene): make above methods return output dictionary?
             actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+            actions = actions.transpose(0, 1)
 
             self._queues["action_tcp"].clear()
-            self._queues["action_tcp"].extend(actions.transpose(0, 1))
+            self._queues["action_tcp"].extend(actions)
+
+            if self._ensembled_actions is None:
+                self._ensembled_actions = actions.clone()
+            else:
+                alpha = 0.9
+                self._ensembled_actions = alpha * self._ensembled_actions + (1 - alpha) * actions[:-1]
+                # The last action, which has no prior moving average, needs to get concatenated onto the end.
+                self._ensembled_actions = torch.cat([self._ensembled_actions, actions[-1:]], dim=0)
+            self._queues["action_tcp"].popleft()
+            action, self._ensembled_actions = self._ensembled_actions[0], self._ensembled_actions[1:]
+            return action, self._ensembled_actions
+        
+        else:
+            if len(self._queues["action_tcp"]) < 8:
+                # stack n latest observations from the queue
+                batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
+                actions = self.diffusion.generate_actions1(batch)
+
+                # TODO(rcadene): make above methods return output dictionary?
+                actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+
+                self._queues["action_tcp"].clear()
+                self._queues["action_tcp"].extend(actions.transpose(0, 1))
 
         action = self._queues["action_tcp"].popleft()
         return action,self._queues["action_tcp"]

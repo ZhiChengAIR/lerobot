@@ -22,10 +22,10 @@ seed: 100000
 #     max: [511.0, 511.0]
 
 training:
-  offline_steps: 1000000
+  offline_steps: 3000000
   online_steps: 0
   eval_freq: -1
-  save_freq: 10000
+  save_freq: 20000
   log_freq: 250
   save_checkpoint: true
 
@@ -43,7 +43,7 @@ training:
     observation.images.cam_right_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.images.cam_left_wrist: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     observation.images.cam_high: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
-    observation.images.cam_low: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
+    #observation.images.cam_low: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]" #commented out, modified by yz 2024.12.17
     # observation.state: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
     # action: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1 - ${policy.n_obs_steps} + ${policy.horizon})]"
     observation.tcppose: "[i / ${fps} for i in range(1 - ${policy.n_obs_steps}, 1)]"
@@ -62,15 +62,15 @@ policy:
 
   # Input / output structure.
   n_obs_steps: 2
-  horizon: 16
-  n_action_steps: 8
+  horizon: 16 #32 modified by yz, 更长的预测期。 人类专家的抖动和嘈杂的传感器使得从人类演示中学习变得非常困难，通过扩大预测范围
+  n_action_steps: 8 # 16modified by yz 2024.12.17
 
   input_shapes:
     # TODO(rcadene, alexander-soare): add variables for height and width from the dataset/env?
     observation.images.cam_right_wrist: [3, 240, 320]
     observation.images.cam_left_wrist: [3,240, 320]
     observation.images.cam_high: [3, 240, 320]
-    observation.images.cam_low: [3, 240, 320]
+    #observation.images.cam_low: [3, 240, 320] #commented out, modified by yz 2024.12.17
     # observation.state: ["${env.state_dim}"]
     observation.tcppose: ["${env.state_dim}"]
   output_shapes:
@@ -81,7 +81,7 @@ policy:
     observation.images.cam_right_wrist: mean_std
     observation.images.cam_left_wrist: mean_std
     observation.images.cam_high: mean_std
-    observation.images.cam_low: mean_std
+    #observation.images.cam_low: mean_std #commented out, modified by yz 2024.12.17
     # observation.state: min_max
     observation.tcppose: min_max
   output_normalization_modes:
@@ -89,8 +89,8 @@ policy:
 
   # Architecture / modeling.
   # Vision backbone.
-  # vision_backbone: resnet18
-  vision_backbone: fpn_resnet34
+  vision_backbone: resnet18
+  #vision_backbone: fpn_resnet34
   crop_shape: [84, 84]
   crop_is_random: True
   pretrained_backbone_weights: null
@@ -125,7 +125,7 @@ policy:
   transformer_obs_as_cond: True
 
   # Inference
-  num_inference_steps: 100
+  num_inference_steps: 10
 
   # Loss computation
   do_mask_loss_for_padding: false

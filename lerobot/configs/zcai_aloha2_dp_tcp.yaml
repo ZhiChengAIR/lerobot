@@ -1,4 +1,5 @@
-dataset_repo_id: aloha2/pick_and_place_1014_1
+dataset_repo_id: aloha2/pick_place_general_item_merged_resize
+#dataset_repo_id: ['aloha2/clean_pan_1212_0_resize', 'aloha2/fold_clothes_stack_1206_0_resize'] #pick_and_place_1014_1
 defaults:
   - _self_
   - env: zcai_aloha2
@@ -9,7 +10,7 @@ hydra:
     # Set `dir` to where you would like to save all of the run outputs. If you run another training session
     # with the same value for `dir` its contents will be overwritten unless you set `resume` to true.
     dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
-    # dir: # dir: outputs/train/aloha2/collect_dish_0910_0/aloha2_diffusion/2024-09-10_12-28-20
+    # dir:  outputs/train/aloha2/pick_place_general_item_merged_resize/aloha2_dp_jh_tcp/2024-12-20_18-37-53
   job:
     name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${env.name}_${policy.name}
 

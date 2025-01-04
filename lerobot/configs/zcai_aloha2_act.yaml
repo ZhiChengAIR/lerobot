@@ -1,4 +1,5 @@
-dataset_repo_id: aloha2/stack_0927_0
+dataset_repo_id: aloha2/pouring_1224_0 
+#dataset_repo_id: ['aloha2/clean_dirty_pan_1213_0','aloha2/place_clean_pan_1213_0']
 device: cuda # cpu
 
 hydra:

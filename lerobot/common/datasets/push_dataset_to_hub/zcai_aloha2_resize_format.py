@@ -125,21 +125,31 @@ def load_from_raw(
                 v == "3.0"
             ), f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
             f_fps = ep.attrs["fps"]
-            assert f_fps == fps, f"fps {fps} is not equal to fps in HDF5 {f_fps}"
+            down_sample_factor = f_fps // fps
+            assert (
+                f_fps >= fps
+            ), f"fps in hdf5 {f_fps} cannot be smaller than para --fps {fps}"
+            assert (
+                f_fps % fps == 0
+            ), f"fps in hdf5 {f_fps} cannot be divided evenly by para --fps {fps}"
+
             num_frames = ep["/action"].shape[0]
+            down_sample_num_frames = (num_frames - 1) // down_sample_factor + 1
 
             # last step of demonstration is considered done
-            done = torch.zeros(num_frames, dtype=torch.bool)
+            done = torch.zeros(down_sample_num_frames, dtype=torch.bool)
             done[-1] = True
 
-            state = torch.from_numpy(ep["/observations/qpos"][:])
-            qtor = torch.from_numpy(ep["/observations/qtor"][:])
-            qvel = torch.from_numpy(ep["/observations/qvel"][:])
-            qacc = torch.from_numpy(ep["/observations/qacc"][:])
-            tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
-            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
-            action = torch.from_numpy(ep["/action"][:])
-            action_tcp = torch.from_numpy(ep["/action_tcp"][:])
+            state = torch.from_numpy(ep["/observations/qpos"][::down_sample_factor])
+            qtor = torch.from_numpy(ep["/observations/qtor"][::down_sample_factor])
+            qvel = torch.from_numpy(ep["/observations/qvel"][::down_sample_factor])
+            qacc = torch.from_numpy(ep["/observations/qacc"][::down_sample_factor])
+            tcppose = torch.from_numpy(
+                ep["/observations/tcppose"][::down_sample_factor]
+            )
+            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][::down_sample_factor])
+            action = torch.from_numpy(ep["/action"][::down_sample_factor])
+            action_tcp = torch.from_numpy(ep["/action_tcp"][::down_sample_factor])
 
             ep_dict = {}
             for camera in get_cameras(raw_dir):
@@ -173,13 +183,15 @@ def load_from_raw(
                     # store the reference to the video frame
                     ep_dict[img_key] = [
                         {"path": f"videos/{fname}", "timestamp": i / fps}
-                        for i in range(num_frames)
+                        for i in range(down_sample_num_frames)
                     ]
                 else:
                     imgs_array = get_imgs_from_video(
                         str(raw_dir / f"episode_{ep_idx}_{camera}.mp4")
                     )
-                    ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
+                    ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array][
+                        ::down_sample_factor
+                    ]
 
             ep_dict["observation.state"] = state
             ep_dict["observation.qtor"] = qtor
@@ -189,9 +201,9 @@ def load_from_raw(
             ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
             ep_dict["action_tcp"] = action_tcp
-            ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
-            ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
-            ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
+            ep_dict["episode_index"] = torch.tensor([ep_idx] * down_sample_num_frames)
+            ep_dict["frame_index"] = torch.arange(0, down_sample_num_frames, 1)
+            ep_dict["timestamp"] = torch.arange(0, down_sample_num_frames, 1) / fps
             ep_dict["next.done"] = done
             # TODO(rcadene): add reward and success by computing them in sim
 

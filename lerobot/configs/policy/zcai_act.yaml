@@ -38,7 +38,7 @@ override_dataset_stats:
 
 training:
   load_all_video: false
-  offline_steps: 1000000
+  offline_steps: 2000000
   online_steps: 0
   eval_freq: -1
   save_freq: 20000

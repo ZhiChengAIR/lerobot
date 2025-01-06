@@ -26,6 +26,26 @@ from lerobot.common.policies.utils import (
     populate_queues,
 )
 
+def update_ensembled_actions(ensembled_actions,actions,alpha):
+    def normalize_angle(angle):
+        return (angle + 180) % 360 - 180
+    # action中角度所在序号
+    ANGLE_IDX = [3, 4, 5, 10, 11, 12]
+
+    ensembled_actions = einops.rearrange(ensembled_actions,'n b d -> d b n')
+    actions = einops.rearrange(actions,'n b d -> d b n')
+
+    for idx in range(ensembled_actions.shape[0]):
+            if idx in ANGLE_IDX:
+                cache = ensembled_actions[idx] + normalize_angle(actions[idx] - ensembled_actions[idx])
+                ensembled_actions[idx] = normalize_angle(alpha * ensembled_actions[idx] + (1 - alpha) * cache)
+            else:
+                ensembled_actions[idx] = alpha * ensembled_actions[idx] + (1 - alpha) * actions[idx]
+    
+    ensembled_actions = einops.rearrange(ensembled_actions,'d b n -> n b d')
+
+    return ensembled_actions
+
 #------------------------------------------------------------#
 # changed by jh
 import sys
@@ -203,7 +223,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if False:
+        if True:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions1(batch)
@@ -219,7 +239,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
                 self._ensembled_actions = actions.clone()
             else:
                 alpha = 0.9
-                self._ensembled_actions = alpha * self._ensembled_actions + (1 - alpha) * actions[:-1]
+                self._ensembled_actions = update_ensembled_actions(self._ensembled_actions,actions[:-1],alpha)
                 # The last action, which has no prior moving average, needs to get concatenated onto the end.
                 self._ensembled_actions = torch.cat([self._ensembled_actions, actions[-1:]], dim=0)
             self._queues["action_tcp"].popleft()

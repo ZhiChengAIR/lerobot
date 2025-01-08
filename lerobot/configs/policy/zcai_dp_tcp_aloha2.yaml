@@ -26,10 +26,10 @@ training:
   online_steps: 0
   eval_freq: -1
   save_freq: 4000
-  log_freq: 250
+  log_freq: 50
   save_checkpoint: true
 
-  batch_size: 64 #16
+  batch_size: 64 #16, modified by yz
   grad_clip_norm: 10
   lr: 1.0e-4
   lr_scheduler: cosine
@@ -91,7 +91,7 @@ policy:
   # Vision backbone.
   vision_backbone: resnet18
   #vision_backbone: fpn_resnet34
-  crop_shape: [216,288] #[84, 84]
+  crop_shape: [216, 288] #[84, 84] is for sim, modified by yz
   crop_is_random: True
   pretrained_backbone_weights: null
   use_group_norm: True

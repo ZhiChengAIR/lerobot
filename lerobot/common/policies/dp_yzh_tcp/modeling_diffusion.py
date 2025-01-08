@@ -26,6 +26,34 @@ from lerobot.common.policies.utils import (
     populate_queues,
 )
 
+# action中角度所在序号
+ANGLE_IDX = [3, 4, 5, 10, 11, 12]
+def normalize_angle(angle):
+    return (angle + 180) % 360 - 180
+
+def normalize_angle_in_actions(actions):
+    actions = einops.rearrange(actions,'n b d -> d b n')
+    for idx in range(actions.shape[0]):
+        if idx in ANGLE_IDX:
+            actions[idx] = normalize_angle(actions[idx])
+    actions = einops.rearrange(actions,'d b n -> n b d')
+    return actions
+
+def update_ensembled_actions(ensembled_actions,actions,alpha):
+    ensembled_actions = einops.rearrange(ensembled_actions,'n b d -> d b n')
+    actions = einops.rearrange(actions,'n b d -> d b n')
+
+    for idx in range(ensembled_actions.shape[0]):
+            if idx in ANGLE_IDX:
+                cache = ensembled_actions[idx] + normalize_angle(normalize_angle(actions[idx]) - ensembled_actions[idx])
+                ensembled_actions[idx] = normalize_angle(alpha * ensembled_actions[idx] + (1 - alpha) * cache)
+            else:
+                ensembled_actions[idx] = alpha * ensembled_actions[idx] + (1 - alpha) * actions[idx]
+    
+    ensembled_actions = einops.rearrange(ensembled_actions,'d b n -> n b d')
+
+    return ensembled_actions
+
 #------------------------------------------------------------#
 # changed by jh
 import sys
@@ -216,16 +244,41 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
         n_action_steps = self.config.n_action_steps
         updata_len = horizon - (n_obs_steps+2) - n_action_steps
 
-        if len(self._queues["action_tcp"]) < 8:
+        if False:
             # stack n latest observations from the queue
             batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
             actions = self.diffusion.generate_actions1(batch)
 
             # TODO(rcadene): make above methods return output dictionary?
             actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+            actions = actions.transpose(0, 1)
 
             self._queues["action_tcp"].clear()
-            self._queues["action_tcp"].extend(actions.transpose(0, 1))
+            self._queues["action_tcp"].extend(actions)
+
+            if self._ensembled_actions is None:
+                self._ensembled_actions = actions.clone()
+            else:
+                alpha = 0.9
+                self._ensembled_actions = update_ensembled_actions(self._ensembled_actions,actions[:-1],alpha)
+                # The last action, which has no prior moving average, needs to get concatenated onto the end.
+                self._ensembled_actions = torch.cat([self._ensembled_actions, actions[-1:]], dim=0)
+            self._queues["action_tcp"].popleft()
+            action, self._ensembled_actions = self._ensembled_actions[0], self._ensembled_actions[1:]
+            return action, self._ensembled_actions
+        
+        else:
+            if len(self._queues["action_tcp"]) < 8:
+                # stack n latest observations from the queue
+                batch = {k: torch.stack(list(self._queues[k]), dim=1) for k in batch if k in self._queues}
+                actions = self.diffusion.generate_actions1(batch)
+
+                # TODO(rcadene): make above methods return output dictionary?
+                actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+                actions = normalize_angle_in_actions(actions)
+
+                self._queues["action_tcp"].clear()
+                self._queues["action_tcp"].extend(actions.transpose(0, 1))
 
         action = self._queues["action_tcp"].popleft()
         return action,self._queues["action_tcp"]
@@ -269,7 +322,7 @@ class DiffusionModel(nn.Module):
             raise ValueError(f"Unsupported vision backbone {config.vision_backbone}")
         
         #added by yzh
-        self.out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
+        #self.out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
 
         num_images = len([k for k in config.input_shapes if k.startswith("observation.images")])
 
@@ -488,10 +541,10 @@ class DiffusionModel(nn.Module):
             loss = loss * in_episode_bound.unsqueeze(-1)
 
         #out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
-        plot_trajectories(trajectory, #gt_action,
-                                          pred, #pred_action,
-                                          #self.epoch,
-                                          self.out_dir)
+        # plot_trajectories(trajectory, #gt_action,
+        #                                   pred, #pred_action,
+        #                                   #self.epoch,
+        #                                   self.out_dir)
         
         return loss.mean()
 

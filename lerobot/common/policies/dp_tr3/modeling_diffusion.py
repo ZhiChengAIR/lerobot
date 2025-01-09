@@ -6,7 +6,7 @@ TODO(alexander-soare):
 
 import math
 from collections import deque
-from typing import Callable
+from typing import Callable,Union, Optional, Tuple
 
 import einops
 import numpy as np
@@ -554,7 +554,7 @@ class DiffusionRgbEncoder(nn.Module):
         return x
 
 #------------------------------------------------------------#
-# changed by jh
+# changed by jh @ 2025-1-9
 class FPNResNetEncoder(nn.Module):
     """
     FPN-based ResNet encoder, refined to include optional cropping logic
@@ -642,6 +642,7 @@ class FPNResNetEncoder(nn.Module):
         # 4) Return final [B, feature_dim]
         concatenated_embeddings = torch.cat(embeddings, dim=1)
         return concatenated_embeddings
+#------------------------------------------------------------#
 def _replace_submodules(
     root_module: nn.Module, predicate: Callable[[nn.Module], bool], func: Callable[[nn.Module], nn.Module]
 ) -> nn.Module:
@@ -732,7 +733,7 @@ class DiffusionConditionalUnet1d(nn.Module):
 
         # In channels / out channels for each downsampling block in the Unet's encoder. For the decoder, we
         # just reverse these.
-        in_out = [(config.output_shapes["action_tcp"][0], config.down_dims[0])] + list(
+        in_out = [(config.output_shapes["action"][0], config.down_dims[0])] + list(
             zip(config.down_dims[:-1], config.down_dims[1:], strict=True)
         )
 
@@ -787,7 +788,7 @@ class DiffusionConditionalUnet1d(nn.Module):
 
         self.final_conv = nn.Sequential(
             DiffusionConv1dBlock(config.down_dims[0], config.down_dims[0], kernel_size=config.kernel_size),
-            nn.Conv1d(config.down_dims[0], config.output_shapes["action_tcp"][0], 1),
+            nn.Conv1d(config.down_dims[0], config.output_shapes["action"][0], 1),
         )
 
     def forward(self, x: Tensor, timestep: Tensor | int, global_cond=None) -> Tensor:
@@ -895,11 +896,6 @@ class DiffusionConditionalResidualBlock1d(nn.Module):
 #------------------------------------------------------------#
 # changed by jh
 # Class DiffusionTransformer
-
-from typing import Union, Optional, Tuple
-import torch
-import torch.nn as nn
-
 class DiffusionTransformer(nn.Module):
     """
     Transformer-based model for action prediction in the diffusion policy.
@@ -913,8 +909,8 @@ class DiffusionTransformer(nn.Module):
         # Initialize model parameters from config
         self.horizon = config.horizon
         self.n_obs_steps = config.n_obs_steps
-        self.input_dim = config.input_shapes["observation.tcppose"][0]
-        self.output_dim = config.output_shapes["action_tcp"][0]
+        self.input_dim = config.input_shapes["observation.endpose"][0]
+        self.output_dim = config.output_shapes["action"][0]
         self.cond_dim = global_cond_dim
 
         # Transformer parameters from config

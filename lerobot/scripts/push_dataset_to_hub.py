@@ -95,6 +95,10 @@ def get_from_raw_to_lerobot_format_fn(raw_format: str):
         from lerobot.common.datasets.push_dataset_to_hub.cam_png_format import (
             from_raw_to_lerobot_format,
         )
+    elif raw_format == "zcai_tr3":
+        from lerobot.common.datasets.push_dataset_to_hub.zcai_tr3_format import (
+            from_raw_to_lerobot_format,
+        )
     else:
         raise ValueError(
             f"The selected {raw_format} can't be found. Did you add it to `lerobot/scripts/push_dataset_to_hub.py::get_from_raw_to_lerobot_format_fn`?"

@@ -26,6 +26,9 @@ from lerobot.common.policies.utils import (
     populate_queues,
 )
 
+import sys
+from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
+
 def update_ensembled_actions(ensembled_actions,actions,alpha):
     def normalize_angle(angle):
         return (angle + 180) % 360 - 180
@@ -45,57 +48,6 @@ def update_ensembled_actions(ensembled_actions,actions,alpha):
     ensembled_actions = einops.rearrange(ensembled_actions,'d b n -> n b d')
 
     return ensembled_actions
-
-#------------------------------------------------------------#
-# changed by jh
-import sys
-from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
-class FPNResNetEncoder(torch.nn.Module):
-    def __init__(self, backbone_name='resnet34', pretrained=False):
-        """
-        Args:
-            backbone_name (str): Backbone name such as 'resnet18', 'resnet34', 'resnet50'.
-            pretrained (bool): Whether to use pretrained weights.
-        """
-        super(FPNResNetEncoder, self).__init__()
-        # Initialize FPN-based ResNet backbone
-        self.model = resnet_fpn_backbone(backbone_name, pretrained=pretrained)
-        
-        # Use out_channels directly since it's an integer, not a dictionary
-        # Remove the incorrect feature_dim assignment
-        # self.feature_dim = self.model.out_channels
-
-        # Dynamically determine feature_dim by passing a dummy input
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, 3, 224, 224)  # Assuming input size 224x224
-            features = self.model(dummy_input)
-            embeddings = []
-            
-            for level, feature in features.items():
-                embedding = torch.nn.functional.adaptive_avg_pool2d(feature, (1, 1)).reshape(feature.size(0), -1)
-                embeddings.append(embedding)
-            
-            # Concatenate embeddings from all FPN levels
-            concatenated_embeddings = torch.cat(embeddings, dim=1)
-            self.output_dim = concatenated_embeddings.size(1)
-            self.feature_dim = self.output_dim  # Set feature_dim to match output_dim
-
-        print(f"FPNResNetEncoder '{backbone_name}' Output Dimension: {self.output_dim}")
-
-    def forward(self, x):
-        # Extract feature maps at different levels of the FPN
-        features = self.model(x)
-        embeddings = []
-        
-        # Pool and concatenate features from different FPN levels
-        for level, feature in features.items():
-            embedding = torch.nn.functional.adaptive_avg_pool2d(feature, (1, 1)).reshape(feature.size(0), -1)
-            embeddings.append(embedding)
-        
-        # Concatenate embeddings from all FPN levels
-        concatenated_embeddings = torch.cat(embeddings, dim=1)
-        return concatenated_embeddings
-#------------------------------------------------------------#
 
 class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
     name = "diffusion"
@@ -388,30 +340,6 @@ class DiffusionModel(nn.Module):
 
         return actions
 
-    def generate_actions1(self, batch: dict[str, Tensor]) -> Tensor:
-        """
-        This function expects `batch` to have:
-        {
-            "observation.state": (B, n_obs_steps, state_dim)
-            "observation.images": (B, n_obs_steps, num_cameras, C, H, W)
-        }
-        """
-        # batch_size, n_obs_steps = batch["observation.state"].shape[:2]
-        batch_size, n_obs_steps = batch["observation.endpose"].shape[:2]
-        assert n_obs_steps == self.config.n_obs_steps
-
-        # Encode image features and concatenate them all together along with the state vector.
-        global_cond = self._prepare_global_conditioning(batch)  # (B, global_cond_dim)
-
-        # run sampling
-        actions = self.conditional_sample(batch_size, global_cond=global_cond)
-
-        # Extract `n_action_steps` steps worth of actions (from the current observation).
-        start = n_obs_steps + 2
-        # end = start + self.config.n_action_steps
-        actions = actions[:, start:]
-
-        return actions
 
     def compute_loss(self, batch: dict[str, Tensor]) -> Tensor:
         """
@@ -425,10 +353,10 @@ class DiffusionModel(nn.Module):
         """
         # Input validation.
         # assert set(batch).issuperset({"observation.state", "observation.images", "action", "action_is_pad"})
-        assert set(batch).issuperset({"observation.tcppose", "observation.images", "action_tcp", "action_tcp_is_pad"})
+        assert set(batch).issuperset({"observation.endpose", "observation.images", "action", "action_is_pad"})
         # n_obs_steps = batch["observation.state"].shape[1]
-        n_obs_steps = batch["observation.tcppose"].shape[1]
-        horizon = batch["action_tcp"].shape[1]
+        n_obs_steps = batch["observation.endpose"].shape[1]
+        horizon = batch["action"].shape[1]
         assert horizon == self.config.horizon
         assert n_obs_steps == self.config.n_obs_steps
 
@@ -436,7 +364,7 @@ class DiffusionModel(nn.Module):
         global_cond = self._prepare_global_conditioning(batch)  # (B, global_cond_dim)
 
         # Forward diffusion.
-        trajectory = batch["action_tcp"]
+        trajectory = batch["action"]
         # Sample noise to add to the trajectory.
         eps = torch.randn(trajectory.shape, device=trajectory.device)
         # Sample a random noising timestep for each item in the batch.
@@ -467,10 +395,10 @@ class DiffusionModel(nn.Module):
         if self.config.do_mask_loss_for_padding:
             if "action_is_pad" not in batch:
                 raise ValueError(
-                    "You need to provide 'action_tcp_is_pad' in the batch when "
+                    "You need to provide 'action_is_pad' in the batch when "
                     f"{self.config.do_mask_loss_for_padding=}."
                 )
-            in_episode_bound = ~batch["action_tcp_is_pad"]
+            in_episode_bound = ~batch["action_is_pad"]
             loss = loss * in_episode_bound.unsqueeze(-1)
 
         return loss.mean()
@@ -627,118 +555,93 @@ class DiffusionRgbEncoder(nn.Module):
 
 #------------------------------------------------------------#
 # changed by jh
-# class DiffusionRgbEncoder(nn.Module):
-#     """Encoder an RGB image into a 1D feature vector, handling multiple camera views."""
+class FPNResNetEncoder(nn.Module):
+    """
+    FPN-based ResNet encoder, refined to include optional cropping logic
+    (random or center crop), mirroring what DiffusionRgbEncoder does.
+    """
+    def __init__(self, config, backbone_name='resnet34', pretrained=False):
+        """
+        Args:
+            config: A DiffusionConfig or similar object, containing fields like:
+                - crop_shape
+                - crop_is_random
+            backbone_name (str): e.g. 'resnet18', 'resnet34', 'resnet50'
+            pretrained (bool): If True, load pretrained weights.
+        """
+        super().__init__()
 
-#     def __init__(self, config: DiffusionConfig):
-#         super().__init__()
-#         self.config = config
+        # 1) Optional cropping setup
+        if config.crop_shape is not None:
+            self.do_crop = True
+            self.center_crop = torchvision.transforms.CenterCrop(config.crop_shape)
+            if config.crop_is_random:
+                self.maybe_random_crop = torchvision.transforms.RandomCrop(config.crop_shape)
+            else:
+                self.maybe_random_crop = self.center_crop
+        else:
+            self.do_crop = False
 
-#         # Set up optional preprocessing.
-#         if config.crop_shape is not None:
-#             self.do_crop = True
-#             self.center_crop = torchvision.transforms.CenterCrop(config.crop_shape)
-#             self.maybe_random_crop = (
-#                 torchvision.transforms.RandomCrop(config.crop_shape)
-#                 if config.crop_is_random
-#                 else self.center_crop
-#             )
-#         else:
-#             self.do_crop = False
+        # 2) Create the FPN-based backbone
+        self.model = resnet_fpn_backbone(backbone_name, pretrained=pretrained)
+        # e.g. self.model.out_channels = 256, typically
 
-#         # Collect all image keys
-#         image_keys = [k for k in config.input_shapes if k.startswith("observation.images")]
-#         if not image_keys:
-#             raise ValueError("No observation.images keys found in input_shapes.")
+        # 3) Run a dummy input to figure out feature dimension
+        #    We also apply cropping to the dummy input if self.do_crop is True
+        #    so we are consistent in shape.
+        dummy_channels = 3  # for RGB
+        if config.crop_shape is not None:
+            dummy_h, dummy_w = config.crop_shape
+        else:
+            # If no crop is specified, pick some default like (224, 224)
+            dummy_h, dummy_w = (224, 224)
 
-#         # Use the first image key to create a dummy input
-#         first_image_key = image_keys[0]
-#         dummy_input = torch.zeros(
-#             1,
-#             config.input_shapes[first_image_key][0],
-#             *config.input_shapes[first_image_key][1:]
-#         )
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, dummy_channels, dummy_h, dummy_w)
+            if self.do_crop:
+                # Fake "eval" style center crop for shape inference
+                dummy_input = self.center_crop(dummy_input)
 
-#         # Set up backbone
-#         if config.vision_backbone.startswith("fpn_resnet"):
-#             # FPN-based ResNet backbone
-#             resnet_backbone_name = config.vision_backbone.replace("fpn_", "")
-#             self.backbone = resnet_fpn_backbone(resnet_backbone_name, pretrained=config.pretrained_backbone_weights)
-#             self.feature_dim = sum(self.backbone.out_channels)  # Summing FPN output levels
+            features = self.model(dummy_input)  # dict of multi-scale features
+            embeddings = []
+            for feat in features.values():
+                # feat shape: [1, C, H', W']
+                emb = F.adaptive_avg_pool2d(feat, (1, 1)).reshape(feat.size(0), -1)
+                embeddings.append(emb)
+            concatenated_embeddings = torch.cat(embeddings, dim=1)
+            self.feature_dim = concatenated_embeddings.size(1)
 
-#             # Since FPN outputs multiple feature maps, use adaptive pooling and concatenate
-#             self.pool = nn.Sequential(
-#                 nn.AdaptiveAvgPool2d((1, 1)),
-#                 nn.Flatten(),
-#             )
-#             self.out = nn.Linear(self.feature_dim, self.feature_dim)
-#             self.relu = nn.ReLU()
-#         else:
-#             # Standard ResNet backbone
-#             backbone_model = getattr(torchvision.models, config.vision_backbone)(
-#                 weights=config.pretrained_backbone_weights
-#             )
-#             self.backbone = nn.Sequential(*(list(backbone_model.children())[:-2]))  # Remove FC layer
-#             self.feature_dim = backbone_model.fc.in_features  # Use last layer's input features for dim
+        print(
+            f"FPNResNetEncoder '{backbone_name}' Output Dimension: {self.feature_dim}"
+        )
 
-#             # Replace BatchNorm with GroupNorm if required.
-#             if config.use_group_norm:
-#                 if config.pretrained_backbone_weights:
-#                     raise ValueError("Can't replace BatchNorm in pretrained model without ruining the weights!")
-#                 self.backbone = _replace_submodules(
-#                     root_module=self.backbone,
-#                     predicate=lambda x: isinstance(x, nn.BatchNorm2d),
-#                     func=lambda x: nn.GroupNorm(num_groups=x.num_features // 16, num_channels=x.num_features),
-#                 )
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x: (B, 3, H, W) input image tensor with pixel values in [0, 1], possibly multi-batch.
+        Returns:
+            (B, feature_dim) concatenated FPN embedding.
+        """
 
-#             # Determine feature map shape using a dummy input
-#             dummy_feature_map = self.backbone(dummy_input)
-#             feature_map_shape = tuple(dummy_feature_map.shape[1:])  # [C, H, W]
+        # 1) Optional cropping
+        if self.do_crop:
+            if self.training:
+                x = self.maybe_random_crop(x)  # random crop
+            else:
+                x = self.center_crop(x)        # center crop
 
-#             self.pool = SpatialSoftmax(feature_map_shape, num_kp=config.spatial_softmax_num_keypoints)
-#             self.feature_dim = config.spatial_softmax_num_keypoints * 2
-#             self.out = nn.Linear(self.feature_dim, self.feature_dim)
-#             self.relu = nn.ReLU()
+        # 2) Extract multi-scale features
+        features = self.model(x)
 
-#         # Final layer
-#         self.final_layer = nn.Sequential(
-#             self.relu,
-#             self.out
-#         )
+        # 3) Adaptive pool & concatenate
+        embeddings = []
+        for feat in features.values():
+            emb = F.adaptive_avg_pool2d(feat, (1, 1)).reshape(feat.size(0), -1)
+            embeddings.append(emb)
 
-#     def forward(self, x: dict[str, Tensor]) -> Tensor:
-#         """Forward pass to encode the input images."""
-#         # Preprocess the images.
-#         if self.do_crop:
-#             x = {k: (self.maybe_random_crop(v) if self.training else self.center_crop(v)) for k, v in x.items()}
-
-#         # Extract backbone features from all camera images
-#         image_keys = [k for k in self.config.input_shapes if k.startswith("observation.images")]
-#         features = []
-#         for key in image_keys:
-#             img = x[key]  # Assuming x is a dict with keys as image keys
-#             feat = self.backbone(img)
-#             features.append(feat)
-
-#         if self.config.vision_backbone.startswith("fpn_resnet"):
-#             # Apply adaptive pooling and concatenate embeddings
-#             embeddings = []
-#             for feat in features:
-#                 emb = self.pool(feat)
-#                 embeddings.append(emb)
-#             x = torch.cat(embeddings, dim=1)  # [B, feature_dim * num_cameras]
-#         else:
-#             # Standard ResNet: Apply SpatialSoftmax
-#             # Assuming a single image per sample
-#             feat = features[0]  # [B, C, H, W]
-#             x = self.pool(feat)  # [B, K, 2]
-#             x = torch.flatten(x, start_dim=1)  # [B, K*2]
-
-#         # Final linear layer with non-linearity.
-#         x = self.final_layer(x)  # [B, feature_dim]
-#         return x
-#------------------------------------------------------------#
-
+        # 4) Return final [B, feature_dim]
+        concatenated_embeddings = torch.cat(embeddings, dim=1)
+        return concatenated_embeddings
 def _replace_submodules(
     root_module: nn.Module, predicate: Callable[[nn.Module], bool], func: Callable[[nn.Module], nn.Module]
 ) -> nn.Module:

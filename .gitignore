@@ -152,3 +152,5 @@ cython_debug/
 
 .log
 
+# customized folder
+dataset/

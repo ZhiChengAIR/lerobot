@@ -128,6 +128,23 @@ def make_optimizer_and_scheduler(cfg, policy):
             num_warmup_steps=cfg.training.lr_warmup_steps,
             num_training_steps=cfg.training.offline_steps,
         )
+
+    elif cfg.policy.name == "dp_tr3":
+        optimizer = torch.optim.Adam(
+            policy.diffusion.parameters(),
+            cfg.training.lr,
+            cfg.training.adam_betas,
+            cfg.training.adam_eps,
+            cfg.training.adam_weight_decay,
+        )
+        from diffusers.optimization import get_scheduler
+
+        lr_scheduler = get_scheduler(
+            cfg.training.lr_scheduler,
+            optimizer=optimizer,
+            num_warmup_steps=cfg.training.lr_warmup_steps,
+            num_training_steps=cfg.training.offline_steps,
+        )
     #---------------------------------------------------------#
     elif policy.name == "tdmpc":
         optimizer = torch.optim.Adam(policy.parameters(), cfg.training.lr)

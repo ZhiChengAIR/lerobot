@@ -168,6 +168,7 @@ class DiffusionConfig:
     # added by jh
     # Model type: 'unet' or 'transformer'
     model_type: str = "unet"  # Default to 'unet'
+    use_separate_rgb_encoder_per_camera: bool = False
     #--------------------------------------------------#
 
     # Inference

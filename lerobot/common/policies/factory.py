@@ -81,6 +81,7 @@ def get_policy_and_config_classes(name: str) -> tuple[Policy, object]:
     elif name == "dp_tr3":
         from lerobot.common.policies.dp_tr3.configuration_diffusion import DiffusionConfig
         from lerobot.common.policies.dp_tr3.modeling_diffusion import DiffusionPolicy
+        return DiffusionPolicy, DiffusionConfig
     else:
         raise NotImplementedError(f"Policy with name {name} is not implemented.")
 

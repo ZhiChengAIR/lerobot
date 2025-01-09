@@ -129,3 +129,6 @@ policy:
 
   # Loss computation
   do_mask_loss_for_padding: false
+
+  # seperate camera encoder or not
+  use_separate_rgb_encoder_per_camera: false

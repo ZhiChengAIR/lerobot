@@ -10,3 +10,11 @@ policy=zcai_dp_tcp_aloha2 \
 env=zcai_aloha2 \
 hydra.run.dir=/home/h666/code/ZCAI-ROBOT/dependencies/lerobot/outputs/train/test \
 dataset_repo_id=aloha2/pick_and_place_1014_1
+
+01-9-2025
+HYDRA_FULL_ERROR=1 DATA_DIR=/home/zcai/jh_workspace/lerobot/dataset python lerobot/scripts/train.py \
+policy=zcai_dp_tr3 \
+env=zcai_tr3 \
+hydra.run.dir=/home/zcai/jh_workspace/tr3_temp/our_data/our_training/test \
+dataset_repo_id=tr3/test_0107_0 \
+training.batch_size=1

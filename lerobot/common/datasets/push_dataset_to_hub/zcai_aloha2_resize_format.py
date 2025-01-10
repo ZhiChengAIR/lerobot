@@ -156,29 +156,32 @@ def load_from_raw(
                 img_key = f"observation.images.{camera}"
 
                 if video:
-                    # save png images in temporary directory
-                    tmp_imgs_dir = videos_dir / "tmp_images"
-                    # save_images_concurrently(imgs_array, tmp_imgs_dir)
-
-                    # encode images to a mp4 video
                     fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
                     video_path = videos_dir / fname
-                    # encode_video_frames(tmp_imgs_dir, video_path, fps)
-                    video_path.parent.mkdir(parents=True, exist_ok=True)
-                    ffmpeg_cmd = (
-                        f"ffmpeg -r {fps} "
-                        "-loglevel error "
-                        f"-i {str(raw_dir/f'episode_{ep_idx}_{camera}.mp4')} "
-                        "-vcodec libx264 "
-                        "-g 2 "
-                        "-pix_fmt yuv444p "
-                        "-vf scale=320:240 "
-                        f"{str(video_path)}"
-                    )
-                    subprocess.run(ffmpeg_cmd.split(" "), check=True)
-
-                    # clean temporary images directory
-                    # shutil.rmtree(tmp_imgs_dir)
+                    if down_sample_factor == 1:
+                        video_path.parent.mkdir(parents=True, exist_ok=True)
+                        ffmpeg_cmd = (
+                            f"ffmpeg -loglevel error "
+                            f"-i {str(raw_dir/f'episode_{ep_idx}_{camera}.mp4')} "
+                            "-vcodec libx264 "
+                            "-g 2 "
+                            "-pix_fmt yuv444p "
+                            f"-vf fps={fps},scale=320:240 "
+                            f"{str(video_path)}"
+                        )
+                        subprocess.run(ffmpeg_cmd.split(" "), check=True)  
+                    else:
+                        # save png images in temporary directory
+                        tmp_imgs_dir = videos_dir / "tmp_images"
+                        imgs_array = get_imgs_from_video(
+                            str(raw_dir / f"episode_{ep_idx}_{camera}.mp4")
+                        )
+                        imgs_array_down_sample = imgs_array[::down_sample_factor]
+                        save_images_concurrently(imgs_array_down_sample, tmp_imgs_dir)
+                        # encode images to a mp4 video
+                        encode_video_frames(tmp_imgs_dir, video_path, fps)
+                        # clean temporary images directory
+                        shutil.rmtree(tmp_imgs_dir)
 
                     # store the reference to the video frame
                     ep_dict[img_key] = [

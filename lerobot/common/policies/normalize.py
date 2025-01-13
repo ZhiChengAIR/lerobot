@@ -132,8 +132,15 @@ class Normalize(nn.Module):
     # TODO(rcadene): should we remove torch.no_grad?
     @torch.no_grad
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
+
+        print("[DEBUG] Expected keys for normalization:", self.modes.keys())
+        print("[DEBUG] Actual batch keys:", batch.keys())
         for key, mode in self.modes.items():
             buffer = getattr(self, "buffer_" + key.replace(".", "_"))
+
+
+            if key not in batch:
+                print(f"[ERROR] Missing key in batch: {key}")  # Add this line
 
             if mode == "mean_std":
                 mean = buffer["mean"]

@@ -1,4 +1,5 @@
-dataset_repo_id: tr3/test_0107_0
+task_name: test_0107_0
+dataset_repo_id: tr3/${task_name}
 # dataset_repo_id: ['aloha2/pick_and_place_1104_0_rf10','aloha2/pick_and_place_1014_0_rf10'] #pick_and_place_1014_1
 defaults:
   - _self_
@@ -12,7 +13,7 @@ hydra:
     dir: outputs/train/${dataset_repo_id}/${env.name}_${policy.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
     # dir:  outputs/train/aloha2/pick_and_place_merged_0105_0_rf10/aloha2_dp_jh_tcp/2025-01-06_13-54-16
   job:
-    name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${env.name}_${policy.name}
+    name: ${now:%Y-%m-%d}_${now:%H-%M-%S}_${task_name}
 
 wandb:
   enable: True

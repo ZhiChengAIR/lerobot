@@ -13,6 +13,7 @@ dataset_repo_id=aloha2/pick_and_place_1014_1
 
 01-9-2025
 HYDRA_FULL_ERROR=1 DATA_DIR=/home/zcai/jh_workspace/lerobot/dataset python lerobot/scripts/train.py \
+--config-name zcai_tr3_dp \
 policy=zcai_dp_tr3 \
 env=zcai_tr3 \
 hydra.run.dir=/home/zcai/jh_workspace/tr3_temp/our_data/our_training/test \

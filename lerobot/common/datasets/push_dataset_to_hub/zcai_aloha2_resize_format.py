@@ -173,10 +173,10 @@ def load_from_raw(
 
             #test
             axis_angle_arm1_back = rotation_transformer.inverse(rotation_6d_arm1)
-            print("axis_angle_arm1_back: ", axis_angle_arm1_back)
+            # print("axis_angle_arm1_back: ", axis_angle_arm1_back)
 
             axis_angle_arm2_back = rotation_transformer2.forward(rotation_6d_arm2)
-            print("axis_angle_arm2_back: ", axis_angle_arm2_back)
+            # print("axis_angle_arm2_back: ", axis_angle_arm2_back)
 
             # Convert the rotation_6d back to torch.Tensor
             #rotation_6d_tensor = torch.from_numpy(rotation_6d)  # Shape: [num_frames, 6]
@@ -209,6 +209,57 @@ def load_from_raw(
 
             # Convert back to torch.Tensor
             action_tcp_6d = torch.from_numpy(action_tcp_6d_np)  # [num_frames, new_action_dim]
+            # --- added by yz: Convert specific parts of 'tcppose' from 'axis_angle' to 'rotation_6d' ---
+
+            # Convert 'tcppose' to NumPy for processing
+            tcppose_np = tcppose.numpy()  # Shape: [num_frames, action_dim]
+
+            # Extract columns 3-5 and 10-12 (0-based indexing: 3:6 and 10:13)
+            axis_angle_arm1 = tcppose_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
+            axis_angle_arm2 = tcppose_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
+
+            # Apply the RotationTransformer to convert to 'rotation_6d'
+            rotation_6d_arm1 = rotation_transformer.forward(axis_angle_arm1)  # Shape: [num_frames, 6]
+            rotation_6d_arm2 = rotation_transformer.forward(axis_angle_arm2)
+
+            #test
+            # axis_angle_arm1_back = rotation_transformer.inverse(rotation_6d_arm1)
+            # print("axis_angle_arm1_back: ", axis_angle_arm1_back)
+
+            # axis_angle_arm2_back = rotation_transformer2.forward(rotation_6d_arm2)
+            # print("axis_angle_arm2_back: ", axis_angle_arm2_back)
+
+            # Convert the rotation_6d back to torch.Tensor
+            #rotation_6d_tensor = torch.from_numpy(rotation_6d)  # Shape: [num_frames, 6]
+
+            # Replace the original axis-angle entries with the 'rotation_6d' data
+            # To accommodate the increased dimensionality, we'll expand the 'tcppose' tensor
+            # Insert 'rotation_6d' for arm1 at position 3, shifting existing entries
+            # Similarly, insert 'rotation_6d' for arm2 at position 10 (adjusted for previous insertion)
+
+            # Split the original 'tcppose' into parts
+            # Before arm1
+            tcppose_before_arm1 = tcppose_np[:, :3]  # [num_frames, 3]
+            # Between arm1 and arm2
+            tcppose_between_arms = tcppose_np[:, 6:10]  # [num_frames, 4]
+            # After arm2
+            tcppose_after_arm2 = tcppose_np[:, 13:]  # Remaining columns
+
+            # Create new 'tcppose' with 'rotation_6d' for both arms
+            # arm1: replace 3-5 with 6-dim rotation_6d
+            # arm2: replace 10-12 with 6-dim rotation_6d
+            # Total new columns: 3 (before) + 6 (arm1) + 4 (between) + 6 (arm2) + remaining
+
+            tcppose_6d_np = np.hstack((
+                tcppose_before_arm1,        # [num_frames, 3]
+                rotation_6d_arm1,            # [num_frames, 6] for arm1
+                tcppose_between_arms,       # [num_frames, 4]
+                rotation_6d_arm2,            # [num_frames, 6] for arm2
+                tcppose_after_arm2           # [num_frames, remaining]
+            ))  # Final shape: [num_frames, original_dim + 6]
+
+            # Convert back to torch.Tensor
+            tcppose_6d = torch.from_numpy(tcppose_6d_np)  # [num_frames, new_action_dim]
 
             # --- End Modification ---
 
@@ -261,7 +312,7 @@ def load_from_raw(
             ep_dict["observation.qtor"] = qtor
             ep_dict["observation.qvel"] = qvel
             ep_dict["observation.qacc"] = qacc
-            ep_dict["observation.tcppose"] = tcppose
+            ep_dict["observation.tcppose"] = tcppose_6d
             ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
             ep_dict["action_tcp"] = action_tcp_6d #action_tcp, modified by yz

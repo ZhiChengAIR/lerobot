@@ -116,11 +116,8 @@ def load_from_raw(
     hdf5_files = sorted(raw_dir.glob("episode_*.hdf5"))
     num_episodes = len(hdf5_files)
 
-    # Initialize the RotationTransformer for converting from 'axis_angle' to 'rotation_6d'
-    rotation_transformer = RotationTransformer(from_rep='axis_angle', to_rep='rotation_6d')
-
-    #test
-    rotation_transformer2 = RotationTransformer(from_rep='rotation_6d', to_rep='axis_angle')
+    # Initialize the RotationTransformer for converting from 'euler_angles' to 'rotation_6d'
+    rotation_transformer = RotationTransformer(from_rep='euler_angles', to_rep='rotation_6d', from_convention = "XYZ")
 
     ep_dicts = []
     ep_ids = episodes if episodes else range(num_episodes)
@@ -158,30 +155,20 @@ def load_from_raw(
             action = torch.from_numpy(ep["/action"][::down_sample_factor])
             action_tcp = torch.from_numpy(ep["/action_tcp"][::down_sample_factor])
 
-            # --- added by yz: Convert specific parts of 'action_tcp' from 'axis_angle' to 'rotation_6d' ---
+            # --- added by yz: Convert specific parts of 'action_tcp' from 'euler_angles' to 'rotation_6d' ---
 
             # Convert 'action_tcp' to NumPy for processing
             action_tcp_np = action_tcp.numpy()  # Shape: [num_frames, action_dim]
 
             # Extract columns 3-5 and 10-12 (0-based indexing: 3:6 and 10:13)
-            axis_angle_arm1 = action_tcp_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
-            axis_angle_arm2 = action_tcp_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
+            euler_angles_arm1 = action_tcp_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
+            euler_angles_arm2 = action_tcp_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
 
             # Apply the RotationTransformer to convert to 'rotation_6d'
-            rotation_6d_arm1 = rotation_transformer.forward(axis_angle_arm1)  # Shape: [num_frames, 6]
-            rotation_6d_arm2 = rotation_transformer.forward(axis_angle_arm2)
+            rotation_6d_arm1 = rotation_transformer.forward(euler_angles_arm1)  # Shape: [num_frames, 6]
+            rotation_6d_arm2 = rotation_transformer.forward(euler_angles_arm2)
 
-            #test
-            axis_angle_arm1_back = rotation_transformer.inverse(rotation_6d_arm1)
-            # print("axis_angle_arm1_back: ", axis_angle_arm1_back)
-
-            axis_angle_arm2_back = rotation_transformer2.forward(rotation_6d_arm2)
-            # print("axis_angle_arm2_back: ", axis_angle_arm2_back)
-
-            # Convert the rotation_6d back to torch.Tensor
-            #rotation_6d_tensor = torch.from_numpy(rotation_6d)  # Shape: [num_frames, 6]
-
-            # Replace the original axis-angle entries with the 'rotation_6d' data
+            # Replace the original euler_angles entries with the 'rotation_6d' data
             # To accommodate the increased dimensionality, we'll expand the 'action_tcp' tensor
             # Insert 'rotation_6d' for arm1 at position 3, shifting existing entries
             # Similarly, insert 'rotation_6d' for arm2 at position 10 (adjusted for previous insertion)
@@ -209,30 +196,21 @@ def load_from_raw(
 
             # Convert back to torch.Tensor
             action_tcp_6d = torch.from_numpy(action_tcp_6d_np)  # [num_frames, new_action_dim]
-            # --- added by yz: Convert specific parts of 'tcppose' from 'axis_angle' to 'rotation_6d' ---
+            # --- added by yz: Convert specific parts of 'tcppose' from 'euler_angles' to 'rotation_6d' ---
 
             # Convert 'tcppose' to NumPy for processing
             tcppose_np = tcppose.numpy()  # Shape: [num_frames, action_dim]
 
             # Extract columns 3-5 and 10-12 (0-based indexing: 3:6 and 10:13)
-            axis_angle_arm1 = tcppose_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
-            axis_angle_arm2 = tcppose_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
+            euler_angles_arm1 = tcppose_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
+            euler_angles_arm2 = tcppose_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
 
             # Apply the RotationTransformer to convert to 'rotation_6d'
-            rotation_6d_arm1 = rotation_transformer.forward(axis_angle_arm1)  # Shape: [num_frames, 6]
-            rotation_6d_arm2 = rotation_transformer.forward(axis_angle_arm2)
+            rotation_6d_arm1 = rotation_transformer.forward(euler_angles_arm1)  # Shape: [num_frames, 6]
+            rotation_6d_arm2 = rotation_transformer.forward(euler_angles_arm2)
 
-            #test
-            # axis_angle_arm1_back = rotation_transformer.inverse(rotation_6d_arm1)
-            # print("axis_angle_arm1_back: ", axis_angle_arm1_back)
 
-            # axis_angle_arm2_back = rotation_transformer2.forward(rotation_6d_arm2)
-            # print("axis_angle_arm2_back: ", axis_angle_arm2_back)
-
-            # Convert the rotation_6d back to torch.Tensor
-            #rotation_6d_tensor = torch.from_numpy(rotation_6d)  # Shape: [num_frames, 6]
-
-            # Replace the original axis-angle entries with the 'rotation_6d' data
+            # Replace the original euler_angles entries with the 'rotation_6d' data
             # To accommodate the increased dimensionality, we'll expand the 'tcppose' tensor
             # Insert 'rotation_6d' for arm1 at position 3, shifting existing entries
             # Similarly, insert 'rotation_6d' for arm2 at position 10 (adjusted for previous insertion)

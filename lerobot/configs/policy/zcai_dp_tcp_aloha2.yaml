@@ -22,14 +22,14 @@ seed: 100000
 #     max: [511.0, 511.0]
 
 training:
-  offline_steps: 1000000
+  offline_steps: 300000
   online_steps: 0
   eval_freq: -1
-  save_freq: 10000
+  save_freq: 4000
   log_freq: 250
   save_checkpoint: true
 
-  batch_size: 16
+  batch_size: 64 #16
   grad_clip_norm: 10
   lr: 1.0e-4
   lr_scheduler: cosine
@@ -89,9 +89,9 @@ policy:
 
   # Architecture / modeling.
   # Vision backbone.
-  # vision_backbone: resnet18
-  vision_backbone: fpn_resnet34
-  crop_shape: [84, 84]
+  vision_backbone: resnet18
+  #vision_backbone: fpn_resnet34
+  crop_shape: [216,288] #[84, 84]
   crop_is_random: True
   pretrained_backbone_weights: null
   use_group_norm: True
@@ -103,7 +103,7 @@ policy:
   diffusion_step_embed_dim: 128
   use_film_scale_modulation: True
   # Noise scheduler.
-  noise_scheduler_type: DDPM
+  noise_scheduler_type: DDIM
   num_train_timesteps: 100
   beta_schedule: squaredcos_cap_v2
   beta_start: 0.0001
@@ -113,7 +113,7 @@ policy:
   clip_sample_range: 1.0
 
   # Transformer-specific parameters
-  model_type: "transformer"  # "unet" or "transformer"
+  model_type: "unet"  # "unet" or "transformer"
   transformer_n_layer: 8
   transformer_n_cond_layers: 4
   transformer_n_head: 4
@@ -125,7 +125,7 @@ policy:
   transformer_obs_as_cond: True
 
   # Inference
-  num_inference_steps: 100
+  num_inference_steps: 10
 
   # Loss computation
   do_mask_loss_for_padding: false

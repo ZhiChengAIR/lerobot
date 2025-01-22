@@ -43,7 +43,8 @@ from lerobot.common.datasets.utils import (
 )
 from lerobot.common.datasets.video_utils import VideoFrame, encode_video_frames
 
-from lerobot.common.rotation_transformer import RotationTransformer #added by yz
+from lerobot.common.rotation_transformer import RotationTransformer  # added by yz
+
 
 def get_cameras(raw_dir):
     f_dir = glob.glob(str(raw_dir / "episode_0_*.mp4"))
@@ -129,31 +130,21 @@ def load_from_raw(
                 v == "3.0"
             ), f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
             f_fps = ep.attrs["fps"]
-            down_sample_factor = f_fps // fps
-            assert (
-                f_fps >= fps
-            ), f"fps in hdf5 {f_fps} cannot be smaller than para --fps {fps}"
-            assert (
-                f_fps % fps == 0
-            ), f"fps in hdf5 {f_fps} cannot be divided evenly by para --fps {fps}"
-
+            assert f_fps == fps, f"fps {fps} is not equal to fps in HDF5 {f_fps}"
             num_frames = ep["/action"].shape[0]
-            down_sample_num_frames = (num_frames - 1) // down_sample_factor + 1
 
             # last step of demonstration is considered done
-            done = torch.zeros(down_sample_num_frames, dtype=torch.bool)
+            done = torch.zeros(num_frames, dtype=torch.bool)
             done[-1] = True
 
-            state = torch.from_numpy(ep["/observations/qpos"][::down_sample_factor])
-            qtor = torch.from_numpy(ep["/observations/qtor"][::down_sample_factor])
-            qvel = torch.from_numpy(ep["/observations/qvel"][::down_sample_factor])
-            qacc = torch.from_numpy(ep["/observations/qacc"][::down_sample_factor])
-            tcppose = torch.from_numpy(
-                ep["/observations/tcppose"][::down_sample_factor]
-            )
-            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][::down_sample_factor])
-            action = torch.from_numpy(ep["/action"][::down_sample_factor])
-            action_tcp = torch.from_numpy(ep["/action_tcp"][::down_sample_factor])
+            state = torch.from_numpy(ep["/observations/qpos"][:])
+            qtor = torch.from_numpy(ep["/observations/qtor"][:])
+            qvel = torch.from_numpy(ep["/observations/qvel"][:])
+            qacc = torch.from_numpy(ep["/observations/qacc"][:])
+            tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
+            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
+            action = torch.from_numpy(ep["/action"][:])
+            action_tcp = torch.from_numpy(ep["/action_tcp"][:])
 
             # --- added by yz: Convert specific parts of 'action_tcp' from 'euler_angles' to 'rotation_6d' ---
 
@@ -228,13 +219,15 @@ def load_from_raw(
             # arm2: replace 10-12 with 6-dim rotation_6d
             # Total new columns: 3 (before) + 6 (arm1) + 4 (between) + 6 (arm2) + remaining
 
-            tcppose_6d_np = np.hstack((
-                tcppose_before_arm1,        # [num_frames, 3]
-                rotation_6d_arm1,            # [num_frames, 6] for arm1
-                tcppose_between_arms,       # [num_frames, 4]
-                rotation_6d_arm2,            # [num_frames, 6] for arm2
-                tcppose_after_arm2           # [num_frames, remaining]
-            ))  # Final shape: [num_frames, original_dim + 6]
+            tcppose_6d_np = np.hstack(
+                (
+                    tcppose_before_arm1,  # [num_frames, 3]
+                    rotation_6d_arm1,  # [num_frames, 6] for arm1
+                    tcppose_between_arms,  # [num_frames, 4]
+                    rotation_6d_arm2,  # [num_frames, 6] for arm2
+                    tcppose_after_arm2,  # [num_frames, remaining]
+                )
+            )  # Final shape: [num_frames, original_dim + 6]
 
             # Convert back to torch.Tensor
             tcppose_6d = torch.from_numpy(tcppose_6d_np)  # [num_frames, new_action_dim]
@@ -246,45 +239,40 @@ def load_from_raw(
                 img_key = f"observation.images.{camera}"
 
                 if video:
+                    # save png images in temporary directory
+                    tmp_imgs_dir = videos_dir / "tmp_images"
+                    # save_images_concurrently(imgs_array, tmp_imgs_dir)
+
+                    # encode images to a mp4 video
                     fname = f"{img_key}_episode_{ep_idx:06d}.mp4"
                     video_path = videos_dir / fname
-                    if down_sample_factor == 1:
-                        video_path.parent.mkdir(parents=True, exist_ok=True)
-                        ffmpeg_cmd = (
-                            f"ffmpeg -loglevel error "
-                            f"-i {str(raw_dir/f'episode_{ep_idx}_{camera}.mp4')} "
-                            "-vcodec libx264 "
-                            "-g 2 "
-                            "-pix_fmt yuv444p "
-                            f"-vf fps={fps},scale=320:240 "
-                            f"{str(video_path)}"
-                        )
-                        subprocess.run(ffmpeg_cmd.split(" "), check=True)  
-                    else:
-                        # save png images in temporary directory
-                        tmp_imgs_dir = videos_dir / "tmp_images"
-                        imgs_array = get_imgs_from_video(
-                            str(raw_dir / f"episode_{ep_idx}_{camera}.mp4")
-                        )
-                        imgs_array_down_sample = imgs_array[::down_sample_factor]
-                        save_images_concurrently(imgs_array_down_sample, tmp_imgs_dir)
-                        # encode images to a mp4 video
-                        encode_video_frames(tmp_imgs_dir, video_path, fps)
-                        # clean temporary images directory
-                        shutil.rmtree(tmp_imgs_dir)
+                    # encode_video_frames(tmp_imgs_dir, video_path, fps)
+                    video_path.parent.mkdir(parents=True, exist_ok=True)
+                    ffmpeg_cmd = (
+                        f"ffmpeg -r {fps} "
+                        "-loglevel error "
+                        f"-i {str(raw_dir/f'episode_{ep_idx}_{camera}.mp4')} "
+                        "-vcodec libx264 "
+                        "-g 2 "
+                        "-pix_fmt yuv444p "
+                        "-vf scale=320:240 "
+                        f"{str(video_path)}"
+                    )
+                    subprocess.run(ffmpeg_cmd.split(" "), check=True)
+
+                    # clean temporary images directory
+                    # shutil.rmtree(tmp_imgs_dir)
 
                     # store the reference to the video frame
                     ep_dict[img_key] = [
                         {"path": f"videos/{fname}", "timestamp": i / fps}
-                        for i in range(down_sample_num_frames)
+                        for i in range(num_frames)
                     ]
                 else:
                     imgs_array = get_imgs_from_video(
                         str(raw_dir / f"episode_{ep_idx}_{camera}.mp4")
                     )
-                    ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array][
-                        ::down_sample_factor
-                    ]
+                    ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
             ep_dict["observation.state"] = state
             ep_dict["observation.qtor"] = qtor
@@ -293,10 +281,10 @@ def load_from_raw(
             ep_dict["observation.tcppose"] = tcppose_6d
             ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
-            ep_dict["action_tcp"] = action_tcp_6d #action_tcp, modified by yz
-            ep_dict["episode_index"] = torch.tensor([ep_idx] * down_sample_num_frames)
-            ep_dict["frame_index"] = torch.arange(0, down_sample_num_frames, 1)
-            ep_dict["timestamp"] = torch.arange(0, down_sample_num_frames, 1) / fps
+            ep_dict["action_tcp"] = action_tcp_6d
+            ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
+            ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
+            ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
             ep_dict["next.done"] = done
             # TODO(rcadene): add reward and success by computing them in sim
 

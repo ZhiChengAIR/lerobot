@@ -37,6 +37,7 @@ from lerobot.common.logger import Logger, log_output_dir
 from lerobot.common.policies.factory import make_policy
 from lerobot.common.policies.policy_protocol import PolicyWithUpdate
 from lerobot.common.policies.utils import get_device_from_parameters
+from lerobot.common.policies.dp_jh_tcp.visual_results import plot_trajectories
 from lerobot.common.utils.utils import (
     format_big_number,
     get_safe_torch_device,
@@ -45,7 +46,7 @@ from lerobot.common.utils.utils import (
     set_global_seed,
 )
 from lerobot.scripts.eval import eval_policy
-
+import copy #added by yzh
 
 def worker_init_fn(worker_id):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -128,7 +129,42 @@ def make_optimizer_and_scheduler(cfg, policy):
             num_warmup_steps=cfg.training.lr_warmup_steps,
             num_training_steps=cfg.training.offline_steps,
         )
+
+    elif cfg.policy.name == "dp_tr3":
+        optimizer = torch.optim.Adam(
+            policy.diffusion.parameters(),
+            cfg.training.lr,
+            cfg.training.adam_betas,
+            cfg.training.adam_eps,
+            cfg.training.adam_weight_decay,
+        )
+        from diffusers.optimization import get_scheduler
+
+        lr_scheduler = get_scheduler(
+            cfg.training.lr_scheduler,
+            optimizer=optimizer,
+            num_warmup_steps=cfg.training.lr_warmup_steps,
+            num_training_steps=cfg.training.offline_steps,
+        )
     #---------------------------------------------------------#
+    # added by yzh
+    elif cfg.policy.name == "dp_yzh_tcp":
+        optimizer = torch.optim.Adam(
+            policy.diffusion.parameters(),
+            cfg.training.lr,
+            cfg.training.adam_betas,
+            cfg.training.adam_eps,
+            cfg.training.adam_weight_decay,
+        )
+        from diffusers.optimization import get_scheduler
+
+        lr_scheduler = get_scheduler(
+            cfg.training.lr_scheduler,
+            optimizer=optimizer,
+            num_warmup_steps=cfg.training.lr_warmup_steps,
+            num_training_steps=cfg.training.offline_steps,
+        )
+    #---------------------------------------------------------#    
     elif policy.name == "tdmpc":
         optimizer = torch.optim.Adam(policy.parameters(), cfg.training.lr)
         lr_scheduler = None
@@ -151,10 +187,12 @@ def update_policy(
     batch,
     optimizer,
     grad_clip_norm,
+    step,
     grad_scaler: GradScaler,
     lr_scheduler=None,
     use_amp: bool = False,
 ):
+    mse_batch = copy.deepcopy(batch) #added by yz, You can modify this to use a separate validation batch if desired
     """Returns a dictionary of items for logging."""
     start_time = time.perf_counter()
     device = get_device_from_parameters(policy)
@@ -197,10 +235,21 @@ def update_policy(
         **{k: v for k, v in output_dict.items() if k != "loss"},
     }
 
+    # Evaluate predict train action MSE , added by yzh
+    with torch.no_grad():
+        gt_actions = mse_batch["action_tcp"].to(device)
+        #gt_actions = mse_batch["action"].to(device)
+        pred_actions = policy.predict_action(mse_batch).to(device)
+        mse = torch.nn.functional.mse_loss(pred_actions, gt_actions)/1000
+        info["train_action_mse_error"] = mse.item()
+
+    if step % 500 == 0:
+        plot_trajectories(gt_actions, pred_actions, "plots", step)
+
     return info
 
 
-def log_train_info(logger: Logger, info, step, cfg, dataset, is_offline):
+def log_train_info(logger: Logger, info, step, cfg, dataset, is_offline): 
     loss = info["loss"]
     grad_norm = info["grad_norm"]
     lr = info["lr"]
@@ -490,6 +539,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
             batch,
             optimizer,
             cfg.training.grad_clip_norm,
+            step,
             grad_scaler=grad_scaler,
             lr_scheduler=lr_scheduler,
             use_amp=cfg.use_amp,
@@ -501,7 +551,10 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
             log_train_info(
                 logger, train_info, step, cfg, offline_dataset, is_offline=True
             )
-
+            if step % (cfg.training.log_freq*3) == 0:
+                log_train_info(
+                logger, train_info, step, cfg, offline_dataset, is_offline=True
+            )
         # Note: evaluate_and_checkpoint_if_needed happens **after** the `step`th training update has completed,
         # so we pass in step + 1.
         evaluate_and_checkpoint_if_needed(step + 1)
@@ -514,7 +567,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
 
 
 @hydra.main(
-    version_base="1.2", config_name="zcai_aloha2_act", config_path="../configs"
+    version_base="1.2", config_name="zcai_aloha2_dp_tcp", config_path="../configs" #zcai_aloha2_act,zcai_aloha2_dp_tcp
 )
 def train_cli(cfg: dict):
     train(

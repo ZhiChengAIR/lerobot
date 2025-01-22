@@ -26,6 +26,34 @@ from lerobot.common.policies.utils import (
     populate_queues,
 )
 
+# action中角度所在序号
+ANGLE_IDX = [3, 4, 5, 10, 11, 12]
+def normalize_angle(angle):
+    return (angle + 180) % 360 - 180
+
+def normalize_angle_in_actions(actions):
+    actions = einops.rearrange(actions,'n b d -> d b n')
+    for idx in range(actions.shape[0]):
+        if idx in ANGLE_IDX:
+            actions[idx] = normalize_angle(actions[idx])
+    actions = einops.rearrange(actions,'d b n -> n b d')
+    return actions
+
+def update_ensembled_actions(ensembled_actions,actions,alpha):
+    ensembled_actions = einops.rearrange(ensembled_actions,'n b d -> d b n')
+    actions = einops.rearrange(actions,'n b d -> d b n')
+
+    for idx in range(ensembled_actions.shape[0]):
+            if idx in ANGLE_IDX:
+                cache = ensembled_actions[idx] + normalize_angle(normalize_angle(actions[idx]) - ensembled_actions[idx])
+                ensembled_actions[idx] = normalize_angle(alpha * ensembled_actions[idx] + (1 - alpha) * cache)
+            else:
+                ensembled_actions[idx] = alpha * ensembled_actions[idx] + (1 - alpha) * actions[idx]
+    
+    ensembled_actions = einops.rearrange(ensembled_actions,'d b n -> n b d')
+
+    return ensembled_actions
+
 #------------------------------------------------------------#
 # changed by jh
 import sys
@@ -77,6 +105,16 @@ class FPNResNetEncoder(torch.nn.Module):
         return concatenated_embeddings
 #------------------------------------------------------------#
 
+#------------------------------------------------------------#
+# modified by yzh
+from timm.models.vision_transformer import Attention, Mlp, RmsNorm, use_fused_attn
+import hydra
+#from yz_unit_test.visual_results import (plot_trajectories,
+#                                         plot_avg_mse_with_betas)
+from .visual_results import (plot_trajectories,
+                                         plot_avg_mse_with_betas)
+#------------------------------------------------------------#
+
 class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
     name = "diffusion"
 
@@ -113,6 +151,12 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
 
         self.expected_image_keys = [k for k in config.input_shapes if k.startswith("observation.images")]
 
+        # #added by yzh
+        # self.epoch = 0  # Initialize epoch to zero
+
+        # #added by yzh
+        # self.out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
+
         self.reset()
 
     #------------------------------------------------------------#
@@ -127,9 +171,39 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
             "action_tcp": deque(maxlen=self.config.n_action_steps),
             # "action": deque(maxlen=self.config.n_action_steps),
         }
+    #------------------------------------------------------------#
 
+    #------------------------------------------------------------#
+    # added by yzh
+    @torch.no_grad()
+    def predict_action(self, batch: dict[str, Tensor]) -> Tensor:
+        """
+        Predict actions given observations for evaluation purposes.
 
-        self._ensembled_actions = None
+        Args:
+            batch (dict[str, Tensor]): A dictionary containing observation data.
+
+        Returns:
+            Tensor: Predicted actions.
+        """
+        # Normalize inputs
+        batch = self.normalize_inputs(batch)
+        batch["observation.images"] = torch.stack([batch[k] for k in self.expected_image_keys], dim=-4)
+
+        # Prepare the batch for the diffusion model
+        #batch = {k: v.unsqueeze(0) if len(v.shape) == 3 else v for k, v in batch.items()}  # Ensure batch dimension
+
+        # Generate actions using the diffusion model
+        actions = self.diffusion.generate_actions2(batch)
+        
+        #debug:
+        #print('Generate actions using the diffusion model:',actions)
+
+        # Unnormalize the generated actions
+        actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+        #actions = self.unnormalize_outputs({"action": actions})["action"]
+
+        return actions
     #------------------------------------------------------------#
 
     @torch.no_grad
@@ -219,7 +293,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
                 self._ensembled_actions = actions.clone()
             else:
                 alpha = 0.9
-                self._ensembled_actions = alpha * self._ensembled_actions + (1 - alpha) * actions[:-1]
+                self._ensembled_actions = update_ensembled_actions(self._ensembled_actions,actions[:-1],alpha)
                 # The last action, which has no prior moving average, needs to get concatenated onto the end.
                 self._ensembled_actions = torch.cat([self._ensembled_actions, actions[-1:]], dim=0)
             self._queues["action_tcp"].popleft()
@@ -234,6 +308,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
 
                 # TODO(rcadene): make above methods return output dictionary?
                 actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
+                actions = normalize_angle_in_actions(actions)
 
                 self._queues["action_tcp"].clear()
                 self._queues["action_tcp"].extend(actions.transpose(0, 1))
@@ -279,6 +354,9 @@ class DiffusionModel(nn.Module):
         else:
             raise ValueError(f"Unsupported vision backbone {config.vision_backbone}")
         
+        #added by yzh
+        #self.out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
+
         num_images = len([k for k in config.input_shapes if k.startswith("observation.images")])
 
         # self.unet = DiffusionConditionalUnet1d(
@@ -403,6 +481,9 @@ class DiffusionModel(nn.Module):
         # run sampling
         actions = self.conditional_sample(batch_size, global_cond=global_cond)
 
+        #debug:
+        print('generate_actions():',actions)
+
         # Extract `n_action_steps` steps worth of actions (from the current observation).
         start = n_obs_steps - 1
         end = start + self.config.n_action_steps
@@ -428,12 +509,41 @@ class DiffusionModel(nn.Module):
         # run sampling
         actions = self.conditional_sample(batch_size, global_cond=global_cond)
 
+        #debug:
+        print('generate_actions1():',actions)
+
         # Extract `n_action_steps` steps worth of actions (from the current observation).
         start = n_obs_steps + 2
         # end = start + self.config.n_action_steps
         actions = actions[:, start:]
 
         return actions
+
+    #------------------------------------------------------------#
+    # added by yzh
+    def generate_actions2(self, batch: dict[str, Tensor]) -> Tensor:
+        """
+        This function expects `batch` to have:
+        {
+            "observation.state": (B, n_obs_steps, state_dim)
+            "observation.images": (B, n_obs_steps, num_cameras, C, H, W)
+        }
+        """
+        #batch_size, n_obs_steps = batch["observation.state"].shape[:2] 
+        batch_size, n_obs_steps = batch["observation.tcppose"].shape[:2]
+        assert n_obs_steps == self.config.n_obs_steps
+
+        # Encode image features and concatenate them all together along with the state vector.
+        global_cond = self._prepare_global_conditioning(batch)  # (B, global_cond_dim)
+
+        # run sampling
+        actions = self.conditional_sample(batch_size, global_cond=global_cond)
+        
+        #debug:
+        #print('generate_actions2():',actions)
+
+        return actions
+    #------------------------------------------------------------#
 
     def compute_loss(self, batch: dict[str, Tensor]) -> Tensor:
         """
@@ -483,7 +593,7 @@ class DiffusionModel(nn.Module):
         else:
             raise ValueError(f"Unsupported prediction type {self.config.prediction_type}")
 
-        loss = F.mse_loss(pred, target, reduction="none")
+        loss = F.mse_loss(pred, target, reduction="none") 
 
         # Mask loss wherever the action is padded with copies (edges of the dataset trajectory).
         if self.config.do_mask_loss_for_padding:
@@ -495,6 +605,12 @@ class DiffusionModel(nn.Module):
             in_episode_bound = ~batch["action_tcp_is_pad"]
             loss = loss * in_episode_bound.unsqueeze(-1)
 
+        #out_dir=hydra.core.hydra_config.HydraConfig.get().run.dir
+        # plot_trajectories(trajectory, #gt_action,
+        #                                   pred, #pred_action,
+        #                                   #self.epoch,
+        #                                   self.out_dir)
+        
         return loss.mean()
 
 
@@ -1214,6 +1330,7 @@ class TransformerForDiffusion(nn.Module):
         # Decoder head
         self.ln_f = nn.LayerNorm(n_emb)
         self.head = nn.Linear(n_emb, output_dim)
+        #self.head = FinalLayer(n_emb, output_dim) #modified by yzh
 
         # Constants
         self.T = T
@@ -1229,6 +1346,13 @@ class TransformerForDiffusion(nn.Module):
     def _init_weights(self, module):
         ignore_types = (nn.Dropout,
                         DiffusionSinusoidalPosEmb,
+                        ############added by yz
+                        RmsNorm, 
+                        Mlp, 
+                        FinalLayer, 
+                        nn.GELU, 
+                        nn.Identity, #not necessary for jh's code though, dont know why
+                        ##############
                         nn.TransformerEncoderLayer,
                         nn.TransformerDecoderLayer,
                         nn.TransformerEncoder,
@@ -1332,3 +1456,24 @@ class TransformerForDiffusion(nn.Module):
         x = self.head(x)  # Shape: (B,16,output_dim)
 
         return x
+
+#------------------------------------------------------------#
+# modified by yzh
+class FinalLayer(nn.Module):
+    """
+    The final layer of DiT.
+    """
+    def __init__(self, n_emb, out_channels):
+        super().__init__()
+        self.norm_final = RmsNorm(n_emb, eps=1e-6)
+        approx_gelu = lambda: nn.GELU(approximate="tanh")
+        self.ffn_final = Mlp(in_features=n_emb,
+            hidden_features=n_emb,
+            out_features=out_channels, 
+            act_layer=approx_gelu, drop=0)
+
+    def forward(self, x):
+        x = self.norm_final(x)
+        x = self.ffn_final(x)
+        return x
+#------------------------------------------------------------#

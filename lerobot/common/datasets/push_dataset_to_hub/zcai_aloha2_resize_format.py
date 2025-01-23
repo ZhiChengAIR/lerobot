@@ -102,6 +102,8 @@ def get_imgs_from_video(video_path):
     ]
     return imgs_array
 
+# Initialize the RotationTransformer for converting from 'euler_angles' to 'rotation_6d'
+rotation_transformer = RotationTransformer(from_rep='euler_angles', to_rep='rotation_6d', from_convention = "XYZ")
 
 def load_from_raw(
     raw_dir: Path,
@@ -109,6 +111,7 @@ def load_from_raw(
     fps: int,
     video: bool,
     episodes: list[int] | None = None,
+    rotation_transformer: RotationTransformer = None,  # Accept the transformer as a parameter
 ):
     # only frames from simulation are uncompressed
     compressed_images = "sim" not in raw_dir.name
@@ -117,9 +120,6 @@ def load_from_raw(
     hdf5_files = sorted(raw_dir.glob("episode_*.hdf5"))
     num_episodes = len(hdf5_files)
 
-    # Initialize the RotationTransformer for converting from 'euler_angles' to 'rotation_6d'
-    rotation_transformer = RotationTransformer(from_rep='euler_angles', to_rep='rotation_6d', from_convention = "XYZ")
-
     ep_dicts = []
     ep_ids = episodes if episodes else range(num_episodes)
     for ep_idx in tqdm.tqdm(ep_ids):
@@ -127,24 +127,56 @@ def load_from_raw(
         with h5py.File(ep_path, "r") as ep:
             v = ep.attrs["version"]
             assert (
-                v == "3.0"
+                v == "4.0"
             ), f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
             f_fps = ep.attrs["fps"]
             assert f_fps == fps, f"fps {fps} is not equal to fps in HDF5 {f_fps}"
-            num_frames = ep["/action"].shape[0]
+
+            num_frames = ep["data"]["puppet_left"]["qpos"].shape[0]
 
             # last step of demonstration is considered done
             done = torch.zeros(num_frames, dtype=torch.bool)
             done[-1] = True
 
-            state = torch.from_numpy(ep["/observations/qpos"][:])
-            qtor = torch.from_numpy(ep["/observations/qtor"][:])
-            qvel = torch.from_numpy(ep["/observations/qvel"][:])
-            qacc = torch.from_numpy(ep["/observations/qacc"][:])
-            tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
-            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
-            action = torch.from_numpy(ep["/action"][:])
-            action_tcp = torch.from_numpy(ep["/action_tcp"][:])
+            action = np.concatenate((ep["data"]["master_left"]["qpos"][:], ep["data"]["master_right"]["qpos"][:]), axis=1)
+
+            cache = ep["data"]["puppet_left"]["tcp_pose"][:]
+            action_tcp_left = np.concatenate((cache[1:],cache[-1:]), axis=0)
+            cache = ep["data"]["puppet_right"]["tcp_pose"][:]
+            action_tcp_right = np.concatenate((cache[1:],cache[-1:]), axis=0)
+            action_tcp = np.concatenate((action_tcp_left,action[:,6:7],action_tcp_right,action[:,13:14]),axis=1)
+            target_tcp_pos = np.concatenate((ep["data"]["puppet_left"]["target_tcp_pos"][:],action[:,6:7],ep["data"]["puppet_right"]["target_tcp_pos"][:],action[:,13:14]),axis=1)
+
+            obs_gripper_left = np.concatenate((action[:,6:7][:1],action[:,6:7][:-1]),axis=0)
+            obs_gripper_right = np.concatenate((action[:,13:14][:1],action[:,13:14][:-1]),axis=0)
+            state = np.concatenate((ep["data"]["puppet_left"]["qpos"][:],obs_gripper_left,ep["data"]["puppet_right"]["qpos"][:],obs_gripper_right), axis=1)
+            tcppose = np.concatenate((ep["data"]["puppet_left"]["tcp_pose"][:],obs_gripper_left,ep["data"]["puppet_right"]["tcp_pose"][:],obs_gripper_right), axis=1)
+
+            qtor = np.concatenate((ep["data"]["puppet_left"]["qtor"][:], ep["data"]["puppet_right"]["qtor"][:]), axis=1)
+            qvel = np.concatenate((ep["data"]["puppet_left"]["qvel"][:], ep["data"]["puppet_right"]["qvel"][:]), axis=1)
+            qacc = np.concatenate((ep["data"]["puppet_left"]["qacc"][:], ep["data"]["puppet_right"]["qacc"][:]), axis=1)
+            tcpvel = np.concatenate((ep["data"]["puppet_left"]["tcp_vel"][:],ep["data"]["puppet_right"]["tcp_vel"][:]), axis=1)
+
+            assert num_frames == action.shape[0]
+            assert num_frames == action_tcp.shape[0]
+            assert num_frames == state.shape[0]
+            assert num_frames == tcppose.shape[0]
+            assert num_frames == qtor.shape[0]
+            assert num_frames == qvel.shape[0]
+            assert num_frames == qacc.shape[0]
+            assert num_frames == tcpvel.shape[0]
+            
+
+            action = torch.from_numpy(action)
+            action_tcp = torch.from_numpy(action_tcp)
+            target_tcp_pos = torch.from_numpy(target_tcp_pos)
+            state = torch.from_numpy(state)
+            tcppose = torch.from_numpy(tcppose)
+            qtor = torch.from_numpy(qtor)
+            qvel = torch.from_numpy(qvel)
+            qacc = torch.from_numpy(qacc)
+            tcpvel = torch.from_numpy(tcpvel)
+
 
             # --- added by yz: Convert specific parts of 'action_tcp' from 'euler_angles' to 'rotation_6d' ---
 
@@ -360,12 +392,12 @@ def from_raw_to_lerobot_format(
     episodes: list[int] | None = None,
 ):
     # sanity check
-    check_format(raw_dir)
+    # check_format(raw_dir)
 
     if fps is None:
         fps = 30
 
-    data_dict = load_from_raw(raw_dir, videos_dir, fps, video, episodes)
+    data_dict = load_from_raw(raw_dir, videos_dir, fps, video, episodes, rotation_transformer)
     hf_dataset = to_hf_dataset(data_dict, video)
     episode_data_index = calculate_episode_data_index(hf_dataset)
     info = {

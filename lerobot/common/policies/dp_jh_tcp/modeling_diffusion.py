@@ -310,7 +310,7 @@ class DiffusionPolicy(nn.Module, PyTorchModelHubMixin):
 
                 # TODO(rcadene): make above methods return output dictionary?
                 actions = self.unnormalize_outputs({"action_tcp": actions})["action_tcp"]
-                actions = normalize_angle_in_actions(actions)
+                #actions = normalize_angle_in_actions(actions) #causes incorrect x,y,z!
 
                 self._queues["action_tcp"].clear()
                 self._queues["action_tcp"].extend(actions.transpose(0, 1))
@@ -512,7 +512,7 @@ class DiffusionModel(nn.Module):
         actions = self.conditional_sample(batch_size, global_cond=global_cond)
 
         #debug:
-        print('generate_actions1():',actions)
+        # print('generate_actions1():',actions)
 
         # Extract `n_action_steps` steps worth of actions (from the current observation).
         start = n_obs_steps + 2

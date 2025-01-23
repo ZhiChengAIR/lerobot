@@ -133,8 +133,8 @@ class Normalize(nn.Module):
     @torch.no_grad
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
 
-        print("[DEBUG] Expected keys for normalization:", self.modes.keys())
-        print("[DEBUG] Actual batch keys:", batch.keys())
+        # print("[DEBUG] Expected keys for normalization:", self.modes.keys())
+        # print("[DEBUG] Actual batch keys:", batch.keys())
         for key, mode in self.modes.items():
             buffer = getattr(self, "buffer_" + key.replace(".", "_"))
 

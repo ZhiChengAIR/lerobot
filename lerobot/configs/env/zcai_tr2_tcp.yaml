@@ -1,0 +1,13 @@
+# @package _global_
+
+fps: 10
+
+env:
+  name: aloha2
+  task: DoraAloha-v0
+  state_dim: 20
+  action_dim: 20
+  fps: ${fps}
+  episode_length: 400
+  gym:
+    fps: ${fps}

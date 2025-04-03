@@ -236,15 +236,15 @@ def update_policy(
     }
 
     # Evaluate predict train action MSE , added by yzh
-    with torch.no_grad():
-        gt_actions = mse_batch["action_tcp"].to(device)
-        #gt_actions = mse_batch["action"].to(device)
-        pred_actions = policy.predict_action(mse_batch).to(device)
-        mse = torch.nn.functional.mse_loss(pred_actions, gt_actions)/1000
-        info["train_action_mse_error"] = mse.item()
+    # with torch.no_grad():
+    #     gt_actions = mse_batch["action_tcp"].to(device)
+    #     #gt_actions = mse_batch["action"].to(device)
+    #     pred_actions = policy.predict_action(mse_batch).to(device)
+    #     mse = torch.nn.functional.mse_loss(pred_actions, gt_actions)/1000
+    #     info["train_action_mse_error"] = mse.item()
 
-    if step % 500 == 0:
-        plot_trajectories(gt_actions, pred_actions, "plots", step)
+    # if step % 500 == 0:
+    #     plot_trajectories(gt_actions, pred_actions, "plots", step)
 
     return info
 
@@ -567,7 +567,7 @@ def train(cfg: DictConfig, out_dir: str | None = None, job_name: str | None = No
 
 
 @hydra.main(
-    version_base="1.2", config_name="zcai_aloha2_dp_tcp", config_path="../configs" #zcai_aloha2_act,zcai_aloha2_dp_tcp
+    version_base="1.2", config_name="zcai_tr4_act", config_path="../configs" #zcai_aloha2_act,zcai_aloha2_dp_tcp
 )
 def train_cli(cfg: dict):
     train(

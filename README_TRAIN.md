@@ -32,7 +32,7 @@
 --push-to-hub 0 \
 --force-override 0 \
 --video 1 \
---fps 30
+--fps 10
 ```
 
 参数解释

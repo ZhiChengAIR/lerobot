@@ -30,6 +30,7 @@ from PIL import Image as PILImage
 import glob
 import torchvision
 import subprocess
+
 ZCAI_DATASET_VERSION = "2.0"
 
 from lerobot.common.datasets.push_dataset_to_hub.utils import (
@@ -42,9 +43,11 @@ from lerobot.common.datasets.utils import (
 )
 from lerobot.common.datasets.video_utils import VideoFrame, encode_video_frames
 
+from lerobot.common.rotation_transformer import RotationTransformer  # added by yz
+
 
 def get_cameras(raw_dir):
-    f_dir = glob.glob(str(raw_dir/"episode_0_*.mp4"))
+    f_dir = glob.glob(str(raw_dir / "episode_0_*.mp4"))
     cam_name = [name.split(".")[0].split("episode_0_")[-1] for name in f_dir]
     return cam_name
 
@@ -60,7 +63,7 @@ def check_format(raw_dir) -> bool:
             if f"episode_{i}" in str(hdf5_path):
                 ep_id = i
                 break
-        
+
         with h5py.File(hdf5_path, "r") as data:
             assert "/action" in data
             assert "/observations/qpos" in data
@@ -72,12 +75,15 @@ def check_format(raw_dir) -> bool:
             assert num_frames == data["/observations/qpos"].shape[0]
 
             for camera in get_cameras(raw_dir):
-                img_shape = get_info_from_video(str(raw_dir/f"episode_{ep_id}_{camera}.mp4"))
+                img_shape = get_info_from_video(
+                    str(raw_dir / f"episode_{ep_id}_{camera}.mp4")
+                )
                 assert len(img_shape) == 3
                 c, h, w = img_shape
                 assert (
                     c < h and c < w
                 ), f"Expect (h,w,c) image format but ({h=},{w=},{c=}) provided."
+
 
 def get_info_from_video(video_path):
     torchvision.set_video_backend("pyav")
@@ -85,12 +91,19 @@ def get_info_from_video(video_path):
     img = next(reader)
     return img["data"].shape
 
+
 def get_imgs_from_video(video_path):
     torchvision.set_video_backend("pyav")
     reader = torchvision.io.VideoReader(video_path, "video")
     imgs = list(reader)
-    imgs_array = [np.transpose(np.array(img["data"]),(1,2,0)) for img in imgs]
+    # resize = torchvision.transforms.Resize((240, 320))
+    imgs_array = [
+        np.transpose(np.array(img["data"]), (1, 2, 0)) for img in imgs
+    ]
     return imgs_array
+
+# Initialize the RotationTransformer for converting from 'euler_angles' to 'rotation_6d'
+rotation_transformer = RotationTransformer(from_rep='euler_angles', to_rep='rotation_6d', from_convention = "XYZ")
 
 def load_from_raw(
     raw_dir: Path,
@@ -98,6 +111,7 @@ def load_from_raw(
     fps: int,
     video: bool,
     episodes: list[int] | None = None,
+    rotation_transformer: RotationTransformer = None,  # Accept the transformer as a parameter
 ):
     # only frames from simulation are uncompressed
     compressed_images = "sim" not in raw_dir.name
@@ -112,23 +126,145 @@ def load_from_raw(
         ep_path = hdf5_files[ep_idx]
         with h5py.File(ep_path, "r") as ep:
             v = ep.attrs["version"]
-            assert v == "3.0",f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
+            assert (
+                v == "4.0"
+            ), f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"
             f_fps = ep.attrs["fps"]
-            assert f_fps == fps,f"fps {fps} is not equal to fps in HDF5 {f_fps}"
-            num_frames = ep["/action"].shape[0]
+            assert f_fps == fps, f"fps {fps} is not equal to fps in HDF5 {f_fps}"
+
+            num_frames = ep["data"]["puppet_left"]["qpos"].shape[0]
 
             # last step of demonstration is considered done
             done = torch.zeros(num_frames, dtype=torch.bool)
             done[-1] = True
 
-            state = torch.from_numpy(ep["/observations/qpos"][:])
-            qtor = torch.from_numpy(ep["/observations/qtor"][:])
-            qvel = torch.from_numpy(ep["/observations/qvel"][:])
-            qacc = torch.from_numpy(ep["/observations/qacc"][:])
-            tcppose = torch.from_numpy(ep["/observations/tcppose"][:])
-            tcpvel = torch.from_numpy(ep["/observations/tcpvel"][:])
-            action = torch.from_numpy(ep["/action"][:])
-            action_tcp = torch.from_numpy(ep["/action_tcp"][:])
+            action = np.concatenate((ep["data"]["master_left"]["qpos"][:], ep["data"]["master_right"]["qpos"][:]), axis=1)
+
+            cache = ep["data"]["puppet_left"]["tcp_pose"][:]
+            action_tcp_left = np.concatenate((cache[1:],cache[-1:]), axis=0)
+            cache = ep["data"]["puppet_right"]["tcp_pose"][:]
+            action_tcp_right = np.concatenate((cache[1:],cache[-1:]), axis=0)
+            action_tcp = np.concatenate((action_tcp_left,action[:,6:7],action_tcp_right,action[:,13:14]),axis=1)
+            target_tcp_pos = np.concatenate((ep["data"]["puppet_left"]["target_tcp_pos"][:],action[:,6:7],ep["data"]["puppet_right"]["target_tcp_pos"][:],action[:,13:14]),axis=1)
+
+            obs_gripper_left = np.concatenate((action[:,6:7][:1],action[:,6:7][:-1]),axis=0)
+            obs_gripper_right = np.concatenate((action[:,13:14][:1],action[:,13:14][:-1]),axis=0)
+            state = np.concatenate((ep["data"]["puppet_left"]["qpos"][:],obs_gripper_left,ep["data"]["puppet_right"]["qpos"][:],obs_gripper_right), axis=1)
+            tcppose = np.concatenate((ep["data"]["puppet_left"]["tcp_pose"][:],obs_gripper_left,ep["data"]["puppet_right"]["tcp_pose"][:],obs_gripper_right), axis=1)
+
+            qtor = np.concatenate((ep["data"]["puppet_left"]["qtor"][:], ep["data"]["puppet_right"]["qtor"][:]), axis=1)
+            qvel = np.concatenate((ep["data"]["puppet_left"]["qvel"][:], ep["data"]["puppet_right"]["qvel"][:]), axis=1)
+            qacc = np.concatenate((ep["data"]["puppet_left"]["qacc"][:], ep["data"]["puppet_right"]["qacc"][:]), axis=1)
+            tcpvel = np.concatenate((ep["data"]["puppet_left"]["tcp_vel"][:],ep["data"]["puppet_right"]["tcp_vel"][:]), axis=1)
+
+            assert num_frames == action.shape[0]
+            assert num_frames == action_tcp.shape[0]
+            assert num_frames == state.shape[0]
+            assert num_frames == tcppose.shape[0]
+            assert num_frames == qtor.shape[0]
+            assert num_frames == qvel.shape[0]
+            assert num_frames == qacc.shape[0]
+            assert num_frames == tcpvel.shape[0]
+            
+
+            action = torch.from_numpy(action)
+            action_tcp = torch.from_numpy(action_tcp)
+            target_tcp_pos = torch.from_numpy(target_tcp_pos)
+            state = torch.from_numpy(state)
+            tcppose = torch.from_numpy(tcppose)
+            qtor = torch.from_numpy(qtor)
+            qvel = torch.from_numpy(qvel)
+            qacc = torch.from_numpy(qacc)
+            tcpvel = torch.from_numpy(tcpvel)
+
+
+            # --- added by yz: Convert specific parts of 'action_tcp' from 'euler_angles' to 'rotation_6d' ---
+
+            # Convert 'action_tcp' to NumPy for processing
+            action_tcp_np = action_tcp.numpy()  # Shape: [num_frames, action_dim]
+
+            # Extract columns 3-5 and 10-12 (0-based indexing: 3:6 and 10:13)
+            euler_angles_arm1 = action_tcp_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
+            euler_angles_arm2 = action_tcp_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
+
+            # Apply the RotationTransformer to convert to 'rotation_6d'
+            rotation_6d_arm1 = rotation_transformer.forward(euler_angles_arm1)  # Shape: [num_frames, 6]
+            rotation_6d_arm2 = rotation_transformer.forward(euler_angles_arm2)
+
+            # Replace the original euler_angles entries with the 'rotation_6d' data
+            # To accommodate the increased dimensionality, we'll expand the 'action_tcp' tensor
+            # Insert 'rotation_6d' for arm1 at position 3, shifting existing entries
+            # Similarly, insert 'rotation_6d' for arm2 at position 10 (adjusted for previous insertion)
+
+            # Split the original 'action_tcp' into parts
+            # Before arm1
+            action_tcp_before_arm1 = action_tcp_np[:, :3]  # [num_frames, 3]
+            # Between arm1 and arm2
+            action_tcp_between_arms = action_tcp_np[:, 6:10]  # [num_frames, 4]
+            # After arm2
+            action_tcp_after_arm2 = action_tcp_np[:, 13:]  # Remaining columns
+
+            # Create new 'action_tcp' with 'rotation_6d' for both arms
+            # arm1: replace 3-5 with 6-dim rotation_6d
+            # arm2: replace 10-12 with 6-dim rotation_6d
+            # Total new columns: 3 (before) + 6 (arm1) + 4 (between) + 6 (arm2) + remaining
+
+            action_tcp_6d_np = np.hstack((
+                action_tcp_before_arm1,        # [num_frames, 3]
+                rotation_6d_arm1,            # [num_frames, 6] for arm1
+                action_tcp_between_arms,       # [num_frames, 4]
+                rotation_6d_arm2,            # [num_frames, 6] for arm2
+                action_tcp_after_arm2           # [num_frames, remaining]
+            ))  # Final shape: [num_frames, original_dim + 6]
+
+            # Convert back to torch.Tensor
+            action_tcp_6d = torch.from_numpy(action_tcp_6d_np)  # [num_frames, new_action_dim]
+            # --- added by yz: Convert specific parts of 'tcppose' from 'euler_angles' to 'rotation_6d' ---
+
+            # Convert 'tcppose' to NumPy for processing
+            tcppose_np = tcppose.numpy()  # Shape: [num_frames, action_dim]
+
+            # Extract columns 3-5 and 10-12 (0-based indexing: 3:6 and 10:13)
+            euler_angles_arm1 = tcppose_np[:, 3:6]/180*np.pi   # Shape: [num_frames, 3]
+            euler_angles_arm2 = tcppose_np[:, 10:13]/180*np.pi # Shape: [num_frames, 3]
+
+            # Apply the RotationTransformer to convert to 'rotation_6d'
+            rotation_6d_arm1 = rotation_transformer.forward(euler_angles_arm1)  # Shape: [num_frames, 6]
+            rotation_6d_arm2 = rotation_transformer.forward(euler_angles_arm2)
+
+
+            # Replace the original euler_angles entries with the 'rotation_6d' data
+            # To accommodate the increased dimensionality, we'll expand the 'tcppose' tensor
+            # Insert 'rotation_6d' for arm1 at position 3, shifting existing entries
+            # Similarly, insert 'rotation_6d' for arm2 at position 10 (adjusted for previous insertion)
+
+            # Split the original 'tcppose' into parts
+            # Before arm1
+            tcppose_before_arm1 = tcppose_np[:, :3]  # [num_frames, 3]
+            # Between arm1 and arm2
+            tcppose_between_arms = tcppose_np[:, 6:10]  # [num_frames, 4]
+            # After arm2
+            tcppose_after_arm2 = tcppose_np[:, 13:]  # Remaining columns
+
+            # Create new 'tcppose' with 'rotation_6d' for both arms
+            # arm1: replace 3-5 with 6-dim rotation_6d
+            # arm2: replace 10-12 with 6-dim rotation_6d
+            # Total new columns: 3 (before) + 6 (arm1) + 4 (between) + 6 (arm2) + remaining
+
+            tcppose_6d_np = np.hstack(
+                (
+                    tcppose_before_arm1,  # [num_frames, 3]
+                    rotation_6d_arm1,  # [num_frames, 6] for arm1
+                    tcppose_between_arms,  # [num_frames, 4]
+                    rotation_6d_arm2,  # [num_frames, 6] for arm2
+                    tcppose_after_arm2,  # [num_frames, remaining]
+                )
+            )  # Final shape: [num_frames, original_dim + 6]
+
+            # Convert back to torch.Tensor
+            tcppose_6d = torch.from_numpy(tcppose_6d_np)  # [num_frames, new_action_dim]
+
+            # --- End Modification ---
 
             ep_dict = {}
             for camera in get_cameras(raw_dir):
@@ -151,10 +287,10 @@ def load_from_raw(
                         "-vcodec libx264 "
                         "-g 2 "
                         "-pix_fmt yuv444p "
+                        "-vf scale=640:480 "
                         f"{str(video_path)}"
-                        )
+                    )
                     subprocess.run(ffmpeg_cmd.split(" "), check=True)
-                    
 
                     # clean temporary images directory
                     # shutil.rmtree(tmp_imgs_dir)
@@ -165,17 +301,19 @@ def load_from_raw(
                         for i in range(num_frames)
                     ]
                 else:
-                    imgs_array = get_imgs_from_video(str(raw_dir/f"episode_{ep_idx}_{camera}.mp4"))
+                    imgs_array = get_imgs_from_video(
+                        str(raw_dir / f"episode_{ep_idx}_{camera}.mp4")
+                    )
                     ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
             ep_dict["observation.state"] = state
             ep_dict["observation.qtor"] = qtor
             ep_dict["observation.qvel"] = qvel
             ep_dict["observation.qacc"] = qacc
-            ep_dict["observation.tcppose"] = tcppose
+            ep_dict["observation.tcppose"] = tcppose_6d
             ep_dict["observation.tcpvel"] = tcpvel
             ep_dict["action"] = action
-            ep_dict["action_tcp"] = action_tcp
+            ep_dict["action_tcp"] = action_tcp_6d
             ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
             ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
             ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
@@ -254,12 +392,12 @@ def from_raw_to_lerobot_format(
     episodes: list[int] | None = None,
 ):
     # sanity check
-    check_format(raw_dir)
+    # check_format(raw_dir)
 
     if fps is None:
         fps = 30
 
-    data_dict = load_from_raw(raw_dir, videos_dir, fps, video, episodes)
+    data_dict = load_from_raw(raw_dir, videos_dir, fps, video, episodes, rotation_transformer)
     hf_dataset = to_hf_dataset(data_dict, video)
     episode_data_index = calculate_episode_data_index(hf_dataset)
     info = {

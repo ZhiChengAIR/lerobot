@@ -221,6 +221,19 @@ def add_task_index_by_episodes(dataset: Dataset, tasks_by_episodes: dict) -> tup
     dataset = Dataset.from_pandas(df, features=features, split="train")
     return dataset, tasks
 
+def get_videos_info(local_dir: Path, video_keys: list[str]) -> dict:
+    # Assumes first episode
+    video_files = [
+        DEFAULT_VIDEO_PATH.format(episode_chunk=0, video_key=vid_key, episode_index=0)
+        for vid_key in video_keys
+    ]
+
+    videos_info_dict = {}
+    for vid_key, vid_path in zip(video_keys, video_files, strict=True):
+        videos_info_dict[vid_key] = get_video_info(local_dir / vid_path)
+
+    return videos_info_dict
+
 def convert_metadata(meta_dir: Path, output_dir: Path):
     """转换元数据文件"""
     print("Converting metadata...")
@@ -264,6 +277,35 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
         "shape": (1,),
         "names": None,
     }
+    metadata_v1 = load_json(v1x_dir / V1_INFO_PATH)
+
+
+    if video_keys:
+        assert metadata_v1.get("video", False)
+        new_dataset = new_dataset.remove_columns(video_keys)
+        # clean_gitattr = Path(
+        #     hub_api.hf_hub_download(
+        #         repo_id=GITATTRIBUTES_REF, repo_type="dataset", local_dir=local_dir, filename=".gitattributes"
+        #     )
+        # ).absolute()
+        # with tempfile.TemporaryDirectory() as tmp_video_dir:
+        #     move_videos(
+        #         repo_id, video_keys, total_episodes, total_chunks, Path(tmp_video_dir), clean_gitattr, branch
+        #     )
+        videos_info = get_videos_info(v20_dir, video_keys=video_keys)
+        for key in video_keys:
+            features[key]["shape"] = (
+                videos_info[key].pop("video.height"),
+                videos_info[key].pop("video.width"),
+                videos_info[key].pop("video.channels"),
+            )
+            features[key]["video_info"] = videos_info[key]
+            assert math.isclose(videos_info[key]["video.fps"], metadata_v1["fps"], rel_tol=1e-3)
+            if "encoding" in metadata_v1:
+                assert videos_info[key]["video.pix_fmt"] == metadata_v1["encoding"]["pix_fmt"]
+    else:
+        assert metadata_v1.get("video", 0) == 0
+        videos_info = None
 
     # Episodes
     episodes = [
@@ -272,7 +314,7 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
     ]
     write_jsonlines(episodes, v20_dir / EPISODES_PATH)
 
-    metadata_v1 = load_json(v1x_dir / V1_INFO_PATH)
+
     # Assemble metadata v2.0
     metadata_v2_0 = {
         "codebase_version": V20,

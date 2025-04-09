@@ -11,6 +11,7 @@ import tempfile
 import json
 import shutil
 from pathlib import Path
+import datasets
 from datasets import Dataset
 from datasets import Dataset, Features, Value, Image
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
@@ -52,6 +53,9 @@ from lerobot.common.robot_devices.robots.utils import make_robot_config
 # # 指定 Arrow 文件路径
 arrow_file = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d/train/data-00000-of-00001.arrow"
 output_parquet = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_test/test.parquet"
+single_task = "collect_dish"
+episode_lengths = []
+robot_type = "unknown"
 dataset = Dataset.from_parquet(str(output_parquet))
 # 打开 Arrow 文件并读取整个表
 # with open(arrow_file, "rb") as f:
@@ -106,19 +110,19 @@ def convert_arrow_to_v2(input_arrow: Path, output_dir: Path):
     
     # 分割数据为Parquet文件
     for chunk_idx, start_idx in enumerate(range(0, total_episodes, DEFAULT_CHUNK_SIZE)):
-        chunk_dir = output_dir / f"data/chunk-{chunk_idx:03d}"
-        chunk_dir.mkdir(parents=True, exist_ok=True)
+        # chunk_dir = output_dir / f"data/chunk-{chunk_idx:03d}"
+        # chunk_dir.mkdir(parents=True, exist_ok=True)
         
         end_idx = min(start_idx + DEFAULT_CHUNK_SIZE, total_episodes)
-        print(f"Processing chunk {chunk_idx}: episodes {start_idx}-{end_idx-1}")
+        # print(f"Processing chunk {chunk_idx}: episodes {start_idx}-{end_idx-1}")
         
         for ep_idx in tqdm(episode_indices[start_idx:end_idx], desc=f"Chunk {chunk_idx}"):
             # 提取单个episode数据
             episode_data = dataset.filter(lambda x: x["episode_index"] == ep_idx)
-            
+            episode_lengths.insert(ep_idx, len(episode_data))
             # 写入Parquet文件
-            output_path = chunk_dir / f"episode_{ep_idx:06d}.parquet"
-            pq.write_table(episode_data.data.table, output_path)
+            # output_path = chunk_dir / f"episode_{ep_idx:06d}.parquet"
+            # pq.write_table(episode_data.data.table, output_path)
 
 
 
@@ -167,20 +171,76 @@ def convert_stats_to_json(v1_dir: Path, v2_dir: Path) -> None:
     for key in stats:
         torch.testing.assert_close(stats_json[key], stats[key])
 
+def get_features_from_hf_dataset(
+    dataset: Dataset, robot_config: RobotConfig | None = None
+) -> dict[str, list]:
+    robot_config = None
+    features = {}
+    for key, ft in dataset.features.items():
+        if isinstance(ft, datasets.Value):
+            dtype = ft.dtype
+            shape = (1,)
+            names = None
+        if isinstance(ft, datasets.Sequence):
+            assert isinstance(ft.feature, datasets.Value)
+            dtype = ft.feature.dtype
+            shape = (ft.length,)
+            motor_names = (
+                robot_config["names"][key] if robot_config else [f"motor_{i}" for i in range(ft.length)]
+            )
+            assert len(motor_names) == shape[0]
+            names = {"motors": motor_names}
+        elif isinstance(ft, datasets.Image):
+            dtype = "image"
+            image = dataset[0][key]  # Assuming first row
+            channels = get_image_pixel_channels(image)
+            shape = (image.height, image.width, channels)
+            names = ["height", "width", "channels"]
+        elif ft._type == "VideoFrame":
+            dtype = "video"
+            shape = None  # Add shape later
+            names = ["height", "width", "channels"]
+
+        features[key] = {
+            "dtype": dtype,
+            "shape": shape,
+            "names": names,
+        }
+
+    return features
+
+def add_task_index_by_episodes(dataset: Dataset, tasks_by_episodes: dict) -> tuple[Dataset, list[str]]:
+    df = dataset.to_pandas()
+    tasks = list(set(tasks_by_episodes.values()))
+    tasks_to_task_index = {task: task_idx for task_idx, task in enumerate(tasks)}
+    episodes_to_task_index = {ep_idx: tasks_to_task_index[task] for ep_idx, task in tasks_by_episodes.items()}
+    df["task_index"] = df["episode_index"].map(episodes_to_task_index).astype(int)
+
+    features = dataset.features
+    features["task_index"] = datasets.Value(dtype="int64")
+    dataset = Dataset.from_pandas(df, features=features, split="train")
+    return dataset, tasks
+
 def convert_metadata(meta_dir: Path, output_dir: Path):
     """转换元数据文件"""
     print("Converting metadata...")
     output_meta_dir = output_dir / "meta"
     output_meta_dir.mkdir(exist_ok=True)
+    features = get_features_from_hf_dataset(dataset, None)
+    video_keys = [key for key, ft in features.items() if ft["dtype"] == "video"]
     # Episodes & chunks
     episode_indices = sorted(dataset.unique("episode_index"))
     total_episodes = len(episode_indices)
+
     assert episode_indices == list(range(total_episodes))
-    # total_videos = total_episodes * len(video_keys)
+    total_videos = total_episodes * len(video_keys)
     total_chunks = total_episodes // DEFAULT_CHUNK_SIZE
     if total_episodes % DEFAULT_CHUNK_SIZE != 0:
         total_chunks += 1
 
+    tasks_by_episodes = {ep_idx: single_task for ep_idx in episode_indices}
+    new_dataset, tasks = add_task_index_by_episodes(dataset, tasks_by_episodes)
+    tasks_by_episodes = {ep_idx: [task] for ep_idx, task in tasks_by_episodes.items()}
     # Tasks
     # if single_task:
     #     tasks_by_episodes = {ep_idx: single_task for ep_idx in episode_indices}
@@ -196,40 +256,40 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
     # else:
     #     raise ValueError
 
-    # assert set(tasks) == {task for ep_tasks in tasks_by_episodes.values() for task in ep_tasks}
-    # tasks = [{"task_index": task_idx, "task": task} for task_idx, task in enumerate(tasks)]
-    # write_jsonlines(tasks, v20_dir / TASKS_PATH)
-    # features["task_index"] = {
-    #     "dtype": "int64",
-    #     "shape": (1,),
-    #     "names": None,
-    # }
-
+    assert set(tasks) == {task for ep_tasks in tasks_by_episodes.values() for task in ep_tasks}
+    tasks = [{"task_index": task_idx, "task": task} for task_idx, task in enumerate(tasks)]
+    write_jsonlines(tasks, v20_dir / TASKS_PATH)
+    features["task_index"] = {
+        "dtype": "int64",
+        "shape": (1,),
+        "names": None,
+    }
 
     # Episodes
-    # episodes = [
-    #     {"episode_index": ep_idx, "tasks": tasks_by_episodes[ep_idx], "length": episode_lengths[ep_idx]}
-    #     for ep_idx in episode_indices
-    # ]
-    # write_jsonlines(episodes, v20_dir / EPISODES_PATH)
+    episodes = [
+        {"episode_index": ep_idx, "tasks": tasks_by_episodes[ep_idx], "length": episode_lengths[ep_idx]}
+        for ep_idx in episode_indices
+    ]
+    write_jsonlines(episodes, v20_dir / EPISODES_PATH)
 
-    # # Assemble metadata v2.0
-    # metadata_v2_0 = {
-    #     "codebase_version": V20,
-    #     "robot_type": robot_type,
-    #     "total_episodes": total_episodes,
-    #     "total_frames": len(dataset),
-    #     "total_tasks": len(tasks),
-    #     "total_videos": total_videos,
-    #     "total_chunks": total_chunks,
-    #     "chunks_size": DEFAULT_CHUNK_SIZE,
-    #     "fps": metadata_v1["fps"],
-    #     "splits": {"train": f"0:{total_episodes}"},
-    #     "data_path": DEFAULT_PARQUET_PATH,
-    #     "video_path": DEFAULT_VIDEO_PATH if video_keys else None,
-    #     "features": features,
-    # }
-    # write_json(metadata_v2_0, v20_dir / INFO_PATH)
+    metadata_v1 = load_json(v1x_dir / V1_INFO_PATH)
+    # Assemble metadata v2.0
+    metadata_v2_0 = {
+        "codebase_version": V20,
+        "robot_type": robot_type,
+        "total_episodes": total_episodes,
+        "total_frames": len(new_dataset),
+        "total_tasks": len(tasks),
+        "total_videos": total_videos,
+        "total_chunks": total_chunks,
+        "chunks_size": DEFAULT_CHUNK_SIZE,
+        "fps": metadata_v1["fps"],
+        "splits": {"train": f"0:{total_episodes}"},
+        "data_path": DEFAULT_PARQUET_PATH,
+        "video_path": DEFAULT_VIDEO_PATH if video_keys else None,
+        "features": features,
+    }
+    write_json(metadata_v2_0, v20_dir / INFO_PATH)
     convert_stats_to_json(v1x_dir, v20_dir)
     
     # 转换info.json (示例，需根据实际内容调整)
@@ -255,9 +315,9 @@ def main(input_dir: Path, output_dir: Path):
     # output_dir.mkdir(parents=True, exist_ok=True)
     
     # # 1. 处理arrow文件
-    # arrow_file = next(input_dir.glob("train/data-*.arrow"))
+    arrow_file = next(input_dir.glob("train/data-*.arrow"))
     # print(str(arrow_file))
-    # convert_arrow_to_v2(arrow_file, output_dir)
+    convert_arrow_to_v2(arrow_file, output_dir)
     
     # # 2. 处理视频文件
     # videos_dir = input_dir / "videos"

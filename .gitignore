@@ -20,6 +20,7 @@ wandb
 # Data
 data
 outputs
+plots
 
 # Apple
 .DS_Store

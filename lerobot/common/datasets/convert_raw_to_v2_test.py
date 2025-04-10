@@ -51,17 +51,24 @@ from lerobot.common.robot_devices.robots.configs import RobotConfig
 from lerobot.common.robot_devices.robots.utils import make_robot_config
 
 # # 指定 Arrow 文件路径
+# arrow_file = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0126_rf10/train/data-00000-of-00001.arrow"
+# output_parquet = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0126_rf10_test/test.parquet"
+# output_parquet_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0126_rf10_test")
+
 arrow_file = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d/train/data-00000-of-00001.arrow"
-output_parquet = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_test/test.parquet"
+output_parquet = "/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_parquet/test.parquet"
+output_parquet_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_parquet")
+output_parquet_dir.mkdir(parents=True, exist_ok=True)
 single_task = "collect_dish"
 episode_lengths = []
 robot_type = "unknown"
-dataset = Dataset.from_parquet(str(output_parquet))
+
 # 打开 Arrow 文件并读取整个表
-# with open(arrow_file, "rb") as f:
-#     reader = ipc.open_stream(f)
-#     table = reader.read_all()
-# pq.write_table(table, output_parquet)
+with open(arrow_file, "rb") as f:
+    reader = ipc.open_stream(f)
+    table = reader.read_all()
+pq.write_table(table, output_parquet)
+dataset = Dataset.from_parquet(str(output_parquet))
 # 输出 Arrow Table 的基本信息
 # print("Arrow Table 信息:")
 # print(table)
@@ -80,7 +87,10 @@ dataset = Dataset.from_parquet(str(output_parquet))
 V16 = "v1.6"
 V20 = "v2.0"
 v1x_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d")
-v20_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_test_2")
+v20_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/collect_dish_0126_merged_resized6d_new")
+
+# v1x_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0126_rf10")
+# v20_dir = Path("/home/h666/code/dataset/hf_dataset/zcai/aloha2/pick_and_place_0126_rf10_new")
 
 GITATTRIBUTES_REF = "aliberts/gitattributes_reference"
 V1_VIDEO_FILE = "{video_key}_episode_{episode_index:06d}.mp4"
@@ -110,19 +120,19 @@ def convert_arrow_to_v2(input_arrow: Path, output_dir: Path):
     
     # 分割数据为Parquet文件
     for chunk_idx, start_idx in enumerate(range(0, total_episodes, DEFAULT_CHUNK_SIZE)):
-        # chunk_dir = output_dir / f"data/chunk-{chunk_idx:03d}"
-        # chunk_dir.mkdir(parents=True, exist_ok=True)
+        chunk_dir = output_dir / f"data/chunk-{chunk_idx:03d}"
+        chunk_dir.mkdir(parents=True, exist_ok=True)
         
         end_idx = min(start_idx + DEFAULT_CHUNK_SIZE, total_episodes)
-        # print(f"Processing chunk {chunk_idx}: episodes {start_idx}-{end_idx-1}")
+        print(f"Processing chunk {chunk_idx}: episodes {start_idx}-{end_idx-1}")
         
         for ep_idx in tqdm(episode_indices[start_idx:end_idx], desc=f"Chunk {chunk_idx}"):
             # 提取单个episode数据
             episode_data = dataset.filter(lambda x: x["episode_index"] == ep_idx)
             episode_lengths.insert(ep_idx, len(episode_data))
             # 写入Parquet文件
-            # output_path = chunk_dir / f"episode_{ep_idx:06d}.parquet"
-            # pq.write_table(episode_data.data.table, output_path)
+            output_path = chunk_dir / f"episode_{ep_idx:06d}.parquet"
+            pq.write_table(episode_data.data.table, output_path)
 
 
 
@@ -245,12 +255,13 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
     episode_indices = sorted(dataset.unique("episode_index"))
     total_episodes = len(episode_indices)
 
+    print("Converting metadata... 2222")
     assert episode_indices == list(range(total_episodes))
     total_videos = total_episodes * len(video_keys)
     total_chunks = total_episodes // DEFAULT_CHUNK_SIZE
     if total_episodes % DEFAULT_CHUNK_SIZE != 0:
         total_chunks += 1
-
+    print("Converting metadata... 3333")
     tasks_by_episodes = {ep_idx: single_task for ep_idx in episode_indices}
     new_dataset, tasks = add_task_index_by_episodes(dataset, tasks_by_episodes)
     tasks_by_episodes = {ep_idx: [task] for ep_idx, task in tasks_by_episodes.items()}
@@ -277,6 +288,7 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
         "shape": (1,),
         "names": None,
     }
+    print("Converting metadata... 4444")
     metadata_v1 = load_json(v1x_dir / V1_INFO_PATH)
 
 
@@ -354,7 +366,7 @@ def convert_metadata(meta_dir: Path, output_dir: Path):
 def main(input_dir: Path, output_dir: Path):
     """主转换函数"""
     print(f"Converting dataset from {input_dir} to {output_dir}")
-    # output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     # # 1. 处理arrow文件
     arrow_file = next(input_dir.glob("train/data-*.arrow"))
@@ -362,8 +374,8 @@ def main(input_dir: Path, output_dir: Path):
     convert_arrow_to_v2(arrow_file, output_dir)
     
     # # 2. 处理视频文件
-    # videos_dir = input_dir / "videos"
-    # reorganize_videos(videos_dir, output_dir)
+    videos_dir = input_dir / "videos"
+    reorganize_videos(videos_dir, output_dir)
     
     # 3. 处理元数据
     meta_dir = input_dir / "meta_data"

@@ -107,7 +107,7 @@ def load_from_raw(
     ep_dicts = []
     ep_ids = episodes if episodes else range(num_episodes)
     for ep_idx in tqdm.tqdm(ep_ids):
-        ep_path = hdf5_files[ep_idx]
+        ep_path = raw_dir/f"episode_{ep_idx}.hdf5"
         with h5py.File(ep_path, "r") as ep:
             v = ep.attrs["version"]
             assert v == "3.0",f"ZCAI_DATASET_VERSION version {ZCAI_DATASET_VERSION} is not fit for this code version {v},"

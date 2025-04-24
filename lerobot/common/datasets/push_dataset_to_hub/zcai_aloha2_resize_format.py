@@ -306,14 +306,14 @@ def load_from_raw(
                     )
                     ep_dict[img_key] = [PILImage.fromarray(x) for x in imgs_array]
 
-            ep_dict["observation.state"] = state
+            ep_dict["observation.state"] = tcppose_6d
             ep_dict["observation.qtor"] = qtor
             ep_dict["observation.qvel"] = qvel
             ep_dict["observation.qacc"] = qacc
-            ep_dict["observation.tcppose"] = tcppose_6d
+            ep_dict["observation.joints"] = state
             ep_dict["observation.tcpvel"] = tcpvel
-            ep_dict["action"] = action
-            ep_dict["action_tcp"] = action_tcp_6d
+            ep_dict["action"] = action_tcp_6d
+            ep_dict["action_joints"] = action
             ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames)
             ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
             ep_dict["timestamp"] = torch.arange(0, num_frames, 1) / fps
@@ -358,8 +358,8 @@ def to_hf_dataset(data_dict, video) -> Dataset:
         length=data_dict["observation.qacc"].shape[1],
         feature=Value(dtype="float32", id=None),
     )
-    features["observation.tcppose"] = Sequence(
-        length=data_dict["observation.tcppose"].shape[1],
+    features["observation.joints"] = Sequence(
+        length=data_dict["observation.joints"].shape[1],
         feature=Value(dtype="float32", id=None),
     )
     features["observation.tcpvel"] = Sequence(
@@ -370,8 +370,8 @@ def to_hf_dataset(data_dict, video) -> Dataset:
     features["action"] = Sequence(
         length=data_dict["action"].shape[1], feature=Value(dtype="float32", id=None)
     )
-    features["action_tcp"] = Sequence(
-        length=data_dict["action_tcp"].shape[1], feature=Value(dtype="float32", id=None)
+    features["action_joints"] = Sequence(
+        length=data_dict["action_joints"].shape[1], feature=Value(dtype="float32", id=None)
     )
     features["episode_index"] = Value(dtype="int64", id=None)
     features["frame_index"] = Value(dtype="int64", id=None)

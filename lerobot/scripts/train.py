@@ -27,6 +27,7 @@ import torch.nn.functional as F
 from termcolor import colored
 from torch.amp import GradScaler
 from torch.optim import Optimizer
+import multiprocessing as mp
 
 from lerobot.common.constants import ACTION
 from lerobot.common.datasets.factory import make_dataset
@@ -126,6 +127,7 @@ def update_policy(
 
 @parser.wrap()
 def train(cfg: TrainPipelineConfig):
+    mp.set_start_method("spawn", force=True)
     cfg.validate()
     logging.info(pformat(cfg.to_dict()))
 
@@ -300,7 +302,7 @@ def train(cfg: TrainPipelineConfig):
                 index=step,
                 naming='step',
                 one_hand=False,
-                rotation=False,
+                rotation=True,
                 n_samples=3,
             )
             if wandb_logger:

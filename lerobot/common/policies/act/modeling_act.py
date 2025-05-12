@@ -72,6 +72,7 @@ class ACTPolicy(PreTrainedPolicy):
         )
 
         self.model = ACT(config)
+        self.ema_action_pred = None
 
         if config.temporal_ensemble_coeff is not None:
             self.temporal_ensembler = ACTTemporalEnsembler(config.temporal_ensemble_coeff, config.chunk_size)
@@ -203,14 +204,24 @@ class ACTPolicy(PreTrainedPolicy):
         # Action queue logic for n_action_steps > 1. When the action_queue is depleted, populate it by
         # querying the policy.
 
-        actions = self.model(batch)[0][:, : self.config.n_action_steps]
+        actions = self.model(batch)[0][:, : 20]
 
         # TODO(rcadene): make _forward return output dictionary?
         actions = self.unnormalize_outputs({"action": actions})["action"]
 
+        ema_action_alpha = 0.9
+        if self.ema_action_pred == None:
+            self.ema_action_pred = actions
+        else:
+            self.ema_action_pred = (
+                ema_action_alpha * self.ema_action_pred[:, 1:] + (1 - ema_action_alpha) * actions[:,:-1]
+            )
+            self.ema_action_pred = torch.cat([self.ema_action_pred, actions[:, -1:]], dim=1)
+        ema_action_pred = self.ema_action_pred
+
         # `self.model.forward` returns a (batch_size, n_action_steps, action_dim) tensor, but the queue
         # effectively has shape (n_action_steps, batch_size, *), hence the transpose.
-        return actions
+        return ema_action_pred
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
         """Run the batch through the model and compute the loss for training or validation."""
